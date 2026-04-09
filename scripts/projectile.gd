@@ -14,9 +14,9 @@ func _process(delta: float) -> void:
 	if life <= 0.0 or target == null or not is_instance_valid(target):
 		queue_free()
 		return
-	var dir := (target.global_position - global_position)
-	var dist := dir.length()
-	var step := speed * delta
+	var dir: Vector2 = target.global_position - global_position
+	var dist: float = dir.length()
+	var step: float = speed * delta
 	if dist <= step:
 		if target.has_method("take_damage"):
 			target.take_damage(damage)

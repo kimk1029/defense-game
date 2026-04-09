@@ -1,62 +1,68 @@
-[gd_scene load_steps=3 format=3 uid="uid://bdefgame00main"]
+[gd_scene format=3 uid="uid://clqlx34qwseor"]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://dg6mvfh7cqsp8" path="res://scripts/main.gd" id="1_main"]
 
 [sub_resource type="Curve2D" id="Curve2D_path"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 0, 220, 0, 0, 0, 0, 720, 220, 0, 0, 0, 0, 720, 520, 0, 0, 0, 0, 120, 520, 0, 0, 0, 0, 120, 900, 0, 0, 0, 0, 720, 900)
+"points": PackedVector2Array(0, 0, 150, 50, 80, 80, 0, -120, 0, 120, 640, 300, 0, -120, 0, 120, 80, 540, 0, -120, 0, 120, 640, 760, 0, -120, -150, 50, 80, 1000, -150, 0, 0, 0, 500, 1200)
 }
 point_count = 6
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=1633402933]
 script = ExtResource("1_main")
 
-[node name="Path" type="Path2D" parent="."]
+[node name="Path" type="Path2D" parent="." unique_id=1668642609]
 curve = SubResource("Curve2D_path")
 
-[node name="Enemies" type="Node2D" parent="."]
+[node name="Enemies" type="Node2D" parent="." unique_id=1634392233]
 
-[node name="Towers" type="Node2D" parent="."]
+[node name="Towers" type="Node2D" parent="." unique_id=421242421]
 
-[node name="Projectiles" type="Node2D" parent="."]
+[node name="Projectiles" type="Node2D" parent="." unique_id=420252688]
 
-[node name="Gems" type="Node2D" parent="."]
+[node name="Gems" type="Node2D" parent="." unique_id=752704968]
 
-[node name="HUD" type="CanvasLayer" parent="."]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=976728925]
 
-[node name="Stats" type="Label" parent="HUD"]
+[node name="Stats" type="Label" parent="HUD" unique_id=2052254245]
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 704.0
 offset_bottom = 110.0
-text = "Gold: 100   Life: 20   Wave: 1
-Lv 1   XP 0/5"
+text = "골드: 100   생명: 20   웨이브: 1
+Lv 1   경험치 0/5"
 
-[node name="UpgradeMenu" type="ColorRect" parent="HUD"]
+[node name="UpgradeMenu" type="ColorRect" parent="HUD" unique_id=294247196]
 visible = false
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0, 0, 0, 0.75)
 
-[node name="VBox" type="VBoxContainer" parent="HUD/UpgradeMenu"]
+[node name="VBox" type="VBoxContainer" parent="HUD/UpgradeMenu" unique_id=574236263]
+layout_mode = 0
 anchor_left = 0.08
-anchor_right = 0.92
 anchor_top = 0.28
+anchor_right = 0.92
 anchor_bottom = 0.78
 theme_override_constants/separation = 24
 
-[node name="Title" type="Label" parent="HUD/UpgradeMenu/VBox"]
-text = "LEVEL UP! Choose an upgrade"
+[node name="Title" type="Label" parent="HUD/UpgradeMenu/VBox" unique_id=547409386]
+layout_mode = 2
+text = "레벨 업! 업그레이드를 선택하세요"
 horizontal_alignment = 1
 
-[node name="B0" type="Button" parent="HUD/UpgradeMenu/VBox"]
+[node name="B0" type="Button" parent="HUD/UpgradeMenu/VBox" unique_id=1251782675]
 custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
 text = "Option 1"
 
-[node name="B1" type="Button" parent="HUD/UpgradeMenu/VBox"]
+[node name="B1" type="Button" parent="HUD/UpgradeMenu/VBox" unique_id=404664406]
 custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
 text = "Option 2"
 
-[node name="B2" type="Button" parent="HUD/UpgradeMenu/VBox"]
+[node name="B2" type="Button" parent="HUD/UpgradeMenu/VBox" unique_id=506981191]
 custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
 text = "Option 3"
