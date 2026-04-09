@@ -32,6 +32,16 @@ offset_bottom = 110.0
 text = "골드: 100   생명: 20   웨이브: 1
 Lv 1   경험치 0/5"
 
+[node name="WaveAnnounce" type="Label" parent="HUD" unique_id=883927100]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "라운드 1"
+theme_override_font_sizes/font_size = 48
+
 [node name="UpgradeMenu" type="ColorRect" parent="HUD" unique_id=294247196]
 visible = false
 anchors_preset = 15

@@ -26,6 +26,7 @@ var enemies_to_spawn: int = 0
 var spawn_timer: float = 0.0
 var spawn_interval: float = 0.8
 var between_wave_timer: float = 2.0
+var wave_announce_timer: float = 0.0
 
 @onready var path: Path2D = $Path
 @onready var enemies_root: Node2D = $Enemies
@@ -33,6 +34,7 @@ var between_wave_timer: float = 2.0
 @onready var projectiles_root: Node2D = $Projectiles
 @onready var gems_root: Node2D = $Gems
 @onready var stats_label: Label = $HUD/Stats
+@onready var wave_announce: Label = $HUD/WaveAnnounce
 @onready var upgrade_menu: ColorRect = $HUD/UpgradeMenu
 @onready var btns: Array[Button] = [
 	$HUD/UpgradeMenu/VBox/B0,
@@ -125,6 +127,14 @@ func _process(delta: float) -> void:
 	if get_tree().paused:
 		return
 
+	# Wave announce fade out
+	if wave_announce_timer > 0.0:
+		wave_announce_timer -= delta
+		var alpha: float = clamp(wave_announce_timer / 0.5, 0.0, 1.0)
+		wave_announce.modulate.a = alpha
+		if wave_announce_timer <= 0.0:
+			wave_announce.visible = false
+
 	if wave_in_progress:
 		if enemies_to_spawn > 0:
 			spawn_timer -= delta
@@ -158,6 +168,11 @@ func _start_wave() -> void:
 	enemies_to_spawn = 5 + wave * 2
 	spawn_interval = max(0.25, 0.8 - wave * 0.03)
 	spawn_timer = 0.0
+	# Show wave announcement
+	wave_announce.text = "라운드 %d" % wave
+	wave_announce.modulate.a = 1.0
+	wave_announce.visible = true
+	wave_announce_timer = 2.0
 	_refresh_hud()
 
 func _get_monster_type() -> int:
