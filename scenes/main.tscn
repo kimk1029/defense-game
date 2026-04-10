@@ -1,12 +1,52 @@
 [gd_scene format=3 uid="uid://clqlx34qwseor"]
 
 [ext_resource type="Script" uid="uid://dg6mvfh7cqsp8" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Texture2D" uid="uid://dxd1yksdu8u4b" path="res://Gemini_Generated_Image_1nqdt61nqdt61nqd-removebg-preview (1).png" id="1_o5qli"]
 
 [sub_resource type="Curve2D" id="Curve2D_path"]
 _data = {
-"points": PackedVector2Array(0, 0, 150, 50, 80, 80, 0, -120, 0, 120, 640, 300, 0, -120, 0, 120, 80, 540, 0, -120, 0, 120, 640, 760, 0, -120, -150, 50, 80, 1000, -150, 0, 0, 0, 500, 1200)
+"points": PackedVector2Array(0, 0, 150, 50, 80, 80, 0, -120, 0, 120, 640, 300, 0, -120, 0, 120, 80, 540, 0, -120, 0, 120, 640, 760, 19.487175, -110.25641, -19.487175, 110.25641, 80, 1000, -150, 0, 0, 0, 500, 1200)
 }
 point_count = 6
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0wfyh"]
+atlas = ExtResource("1_o5qli")
+region = Rect2(0, 123, 169, 123)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sugp2"]
+atlas = ExtResource("1_o5qli")
+region = Rect2(169, 123, 169, 123)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jyhfs"]
+atlas = ExtResource("1_o5qli")
+region = Rect2(338, 123, 169, 123)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tbgi4"]
+atlas = ExtResource("1_o5qli")
+region = Rect2(507, 123, 169, 123)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_tefeu"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0wfyh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sugp2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jyhfs")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_tbgi4")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0wfyh"]
+size = Vector2(88, 95)
 
 [node name="Main" type="Node2D" unique_id=1633402933]
 script = ExtResource("1_main")
@@ -15,6 +55,16 @@ script = ExtResource("1_main")
 curve = SubResource("Curve2D_path")
 
 [node name="Enemies" type="Node2D" parent="." unique_id=1634392233]
+
+[node name="Monster" type="CharacterBody2D" parent="Enemies" unique_id=847871128]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Enemies/Monster" unique_id=1605651673]
+sprite_frames = SubResource("SpriteFrames_tefeu")
+animation = &"walk"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemies/Monster" unique_id=850386731]
+position = Vector2(-1, 3.5)
+shape = SubResource("RectangleShape2D_0wfyh")
 
 [node name="Towers" type="Node2D" parent="." unique_id=421242421]
 
@@ -37,10 +87,10 @@ visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+theme_override_font_sizes/font_size = 48
+text = "라운드 1"
 horizontal_alignment = 1
 vertical_alignment = 1
-text = "라운드 1"
-theme_override_font_sizes/font_size = 48
 
 [node name="UpgradeMenu" type="ColorRect" parent="HUD" unique_id=294247196]
 visible = false

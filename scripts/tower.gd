@@ -46,6 +46,7 @@ func _get_sp_cooldown(key: String) -> float:
 	return 3.0
 
 func _process(delta: float) -> void:
+	queue_redraw()
 	# Normal attack
 	cooldown -= delta
 	if cooldown <= 0.0:
@@ -130,5 +131,65 @@ func _fire_special(key: String, target: Node2D) -> void:
 			met.start(target.global_position)
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, 16, Color(0.25, 0.55, 0.95))
-	draw_arc(Vector2.ZERO, range_px, 0, TAU, 48, Color(0.4, 0.7, 1.0, 0.18), 1.0)
+	# === Tower base (stone platform) ===
+	# Shadow
+	draw_circle(Vector2(2, 3), 18.0, Color(0.0, 0.0, 0.0, 0.2))
+	# Stone base - octagon shape
+	var base_pts: PackedVector2Array = PackedVector2Array()
+	for i in 8:
+		var angle: float = TAU * i / 8.0 - PI / 8.0
+		base_pts.append(Vector2(cos(angle), sin(angle)) * 18.0)
+	draw_colored_polygon(base_pts, Color(0.45, 0.44, 0.42))
+	# Base edge highlight
+	for i in 8:
+		var a: Vector2 = base_pts[i]
+		var b: Vector2 = base_pts[(i + 1) % 8]
+		draw_line(a, b, Color(0.55, 0.54, 0.5), 1.5)
+
+	# === Tower body ===
+	# Main body (rounded square shape)
+	var body_pts: PackedVector2Array = PackedVector2Array()
+	for i in 12:
+		var angle: float = TAU * i / 12.0
+		var r: float = 12.0 + cos(angle * 4) * 1.5
+		body_pts.append(Vector2(cos(angle), sin(angle)) * r)
+	draw_colored_polygon(body_pts, Color(0.35, 0.38, 0.5))
+	# Body lighter top
+	var top_pts: PackedVector2Array = PackedVector2Array()
+	for i in 12:
+		var angle: float = TAU * i / 12.0
+		top_pts.append(Vector2(cos(angle), sin(angle)) * 10.0)
+	draw_colored_polygon(top_pts, Color(0.42, 0.45, 0.58))
+
+	# === Turret / cannon ===
+	# Find target direction for turret rotation
+	var turret_dir: Vector2 = Vector2.UP
+	var target: Node2D = _find_target()
+	if target != null:
+		turret_dir = (target.global_position - global_position).normalized()
+	# Cannon barrel
+	var barrel_end: Vector2 = turret_dir * 16.0
+	var barrel_perp: Vector2 = Vector2(-turret_dir.y, turret_dir.x)
+	var b1: Vector2 = barrel_perp * 3.0
+	var b2: Vector2 = barrel_perp * -3.0
+	var barrel_pts: PackedVector2Array = PackedVector2Array([
+		b1, b1 + barrel_end, b2 + barrel_end, b2
+	])
+	draw_colored_polygon(barrel_pts, Color(0.3, 0.3, 0.35))
+	# Barrel tip highlight
+	draw_line(b1 + barrel_end, b2 + barrel_end, Color(0.5, 0.5, 0.55), 2.0)
+	# Center turret hub
+	draw_circle(Vector2.ZERO, 6.0, Color(0.5, 0.52, 0.6))
+	draw_circle(Vector2.ZERO, 4.0, Color(0.6, 0.62, 0.7))
+	# Hub rivet
+	draw_circle(Vector2.ZERO, 1.5, Color(0.4, 0.4, 0.45))
+
+	# === Battlements (small squares on corners) ===
+	for i in 4:
+		var angle: float = TAU * i / 4.0 + PI / 4.0
+		var bp: Vector2 = Vector2(cos(angle), sin(angle)) * 16.0
+		draw_rect(Rect2(bp - Vector2(3, 3), Vector2(6, 6)), Color(0.5, 0.5, 0.48))
+		draw_rect(Rect2(bp - Vector2(2, 2), Vector2(4, 4)), Color(0.58, 0.57, 0.54))
+
+	# === Range indicator ===
+	draw_arc(Vector2.ZERO, range_px, 0, TAU, 48, Color(0.4, 0.7, 1.0, 0.15), 1.0)

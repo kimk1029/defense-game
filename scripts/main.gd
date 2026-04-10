@@ -27,6 +27,7 @@ var spawn_timer: float = 0.0
 var spawn_interval: float = 0.8
 var between_wave_timer: float = 2.0
 var wave_announce_timer: float = 0.0
+var wave_clear_timer: float = 0.0
 
 @onready var path: Path2D = $Path
 @onready var enemies_root: Node2D = $Enemies
@@ -99,29 +100,79 @@ func _ready() -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	# === Background grass ===
+	var vp_size: Vector2 = get_viewport_rect().size
+	# Base grass
+	draw_rect(Rect2(Vector2.ZERO, vp_size), Color(0.22, 0.45, 0.18))
+	# Grass texture pattern
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 12345
+	for i in 120:
+		var gx: float = rng.randf() * vp_size.x
+		var gy: float = rng.randf() * vp_size.y
+		var shade: float = rng.randf_range(-0.04, 0.04)
+		var patch_size: float = rng.randf_range(15.0, 45.0)
+		draw_circle(Vector2(gx, gy), patch_size, Color(0.22 + shade, 0.45 + shade * 2, 0.18 + shade))
+	# Small flowers / details
+	for i in 30:
+		var fx: float = rng.randf() * vp_size.x
+		var fy: float = rng.randf() * vp_size.y
+		var flower_color: Color
+		match rng.randi() % 4:
+			0: flower_color = Color(0.9, 0.85, 0.2, 0.5)
+			1: flower_color = Color(0.85, 0.35, 0.4, 0.5)
+			2: flower_color = Color(0.95, 0.95, 0.9, 0.5)
+			_: flower_color = Color(0.6, 0.4, 0.85, 0.5)
+		draw_circle(Vector2(fx, fy), 3.0, flower_color)
+	# Small trees
+	for i in 12:
+		var tx: float = rng.randf() * vp_size.x
+		var ty: float = rng.randf() * vp_size.y
+		# Skip if near path
+		if not _near_path(Vector2(tx, ty), 60.0):
+			# Trunk
+			draw_rect(Rect2(Vector2(tx - 3, ty - 2), Vector2(6, 14)), Color(0.4, 0.28, 0.15))
+			# Canopy
+			draw_circle(Vector2(tx, ty - 8), 12.0, Color(0.15, 0.38, 0.12))
+			draw_circle(Vector2(tx - 6, ty - 4), 9.0, Color(0.18, 0.4, 0.14))
+			draw_circle(Vector2(tx + 6, ty - 4), 9.0, Color(0.18, 0.42, 0.13))
+
+	# === Path / Road ===
 	var curve: Curve2D = path.curve
 	if curve == null or curve.point_count < 2:
 		return
 	var raw_points: PackedVector2Array = curve.get_baked_points()
-	var offset: Vector2 = path.position
+	var path_offset: Vector2 = path.position
 	var points: PackedVector2Array = PackedVector2Array()
 	for p in raw_points:
-		points.append(p + offset)
-	var border_color: Color = Color(0.45, 0.35, 0.2)
-	var road_color: Color = Color(0.3, 0.22, 0.12)
-	var line_color: Color = Color(0.4, 0.3, 0.18, 0.4)
-	var road_width: float = 40.0
-	var border_width: float = 46.0
-	# Border (wider, drawn first)
-	draw_polyline(points, border_color, border_width)
+		points.append(p + path_offset)
+	var road_width: float = 42.0
+	var border_width: float = 50.0
+	# Dark edge
+	draw_polyline(points, Color(0.28, 0.22, 0.12), border_width)
 	for i in range(points.size()):
-		draw_circle(points[i], border_width / 2.0, border_color)
-	# Road surface
-	draw_polyline(points, road_color, road_width)
+		draw_circle(points[i], border_width / 2.0, Color(0.28, 0.22, 0.12))
+	# Road surface - sandy brown
+	draw_polyline(points, Color(0.55, 0.42, 0.25), road_width)
 	for i in range(points.size()):
-		draw_circle(points[i], road_width / 2.0, road_color)
+		draw_circle(points[i], road_width / 2.0, Color(0.55, 0.42, 0.25))
+	# Road dirt detail
+	draw_polyline(points, Color(0.5, 0.38, 0.22, 0.4), road_width * 0.6)
 	# Center dashed line
-	draw_polyline(points, line_color, 2.0)
+	var dash_len: float = 12.0
+	var gap_len: float = 8.0
+	var dist: float = 0.0
+	var total_len: float = curve.get_baked_length()
+	var drawing: bool = true
+	while dist < total_len:
+		var seg_end: float = dist + (dash_len if drawing else gap_len)
+		seg_end = minf(seg_end, total_len)
+		if drawing:
+			var p1: Vector2 = curve.sample_baked(dist) + path_offset
+			var p2: Vector2 = curve.sample_baked(seg_end) + path_offset
+			draw_line(p1, p2, Color(0.65, 0.55, 0.35, 0.35), 2.0)
+		dist = seg_end
+		drawing = !drawing
 
 func _process(delta: float) -> void:
 	if get_tree().paused:
@@ -135,6 +186,14 @@ func _process(delta: float) -> void:
 		if wave_announce_timer <= 0.0:
 			wave_announce.visible = false
 
+	# Wave clear message fade out
+	if wave_clear_timer > 0.0:
+		wave_clear_timer -= delta
+		var alpha: float = clamp(wave_clear_timer / 0.5, 0.0, 1.0)
+		wave_announce.modulate.a = alpha
+		if wave_clear_timer <= 0.0:
+			wave_announce.visible = false
+
 	if wave_in_progress:
 		if enemies_to_spawn > 0:
 			spawn_timer -= delta
@@ -142,8 +201,9 @@ func _process(delta: float) -> void:
 				_spawn_enemy()
 				enemies_to_spawn -= 1
 				spawn_timer = spawn_interval
-		elif enemies_root.get_child_count() == 0:
+		elif path.get_child_count() == 0:
 			wave_in_progress = false
+			_show_wave_clear()
 			_start_next_wave_after_delay()
 	else:
 		between_wave_timer -= delta
@@ -159,8 +219,15 @@ func _input(event: InputEvent) -> void:
 		_try_place_tower(event.position)
 
 # === Wave ===
+func _show_wave_clear() -> void:
+	wave_announce.text = "웨이브 %d 클리어!" % wave
+	wave_announce.modulate.a = 1.0
+	wave_announce.visible = true
+	wave_clear_timer = 3.0
+	wave_announce_timer = 0.0  # cancel any pending wave announce fade
+
 func _start_next_wave_after_delay() -> void:
-	between_wave_timer = 2.5
+	between_wave_timer = 5.0
 
 func _start_wave() -> void:
 	wave += 1
