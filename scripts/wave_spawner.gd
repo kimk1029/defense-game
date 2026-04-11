@@ -117,6 +117,7 @@ func _spawn_one() -> void:
 		sprite.position = Vector2(0.0, -4.0)
 		sprite.play()
 		enemy.add_child(sprite)
+		enemy.sprite_node = sprite
 
 	enemy.died.connect(_on_enemy_died)
 	enemy.reached_base.connect(_on_reached_base)

@@ -16,7 +16,13 @@ var damage_to_base: int = 1
 
 var path_follow: PathFollow2D = null
 var status_holder: StatusHolder = null
+var sprite_node: AnimatedSprite2D = null
 var dead: bool = false
+
+# 스프라이트 좌우 반전용 — 이전 프레임 X좌표
+var _last_x: float = -9999.0
+# 기본 스프라이트가 오른쪽을 바라본다고 가정. 왼쪽이 기본이면 이 값을 true로.
+var sprite_default_faces_left: bool = false
 
 func _ready() -> void:
 	z_index = 5
@@ -46,6 +52,14 @@ func _process(delta: float) -> void:
 	var mult: float = status_holder.speed_multiplier()
 	path_follow.progress += base_speed * mult * delta
 	global_position = path_follow.global_position
+
+	# 진행 방향에 맞춰 스프라이트 좌우 반전
+	if sprite_node != null and _last_x > -9000.0:
+		var dx: float = global_position.x - _last_x
+		if absf(dx) > 0.15:
+			var moving_left: bool = dx < 0.0
+			sprite_node.flip_h = moving_left != sprite_default_faces_left
+	_last_x = global_position.x
 
 	if path_follow.progress_ratio >= 1.0:
 		_reach_base()
