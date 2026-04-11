@@ -21,4 +21,16 @@ func _process(delta: float) -> void:
 	queue_free()
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, 5, Color(0.4, 0.9, 1.0))
+	# Glow aura
+	draw_circle(Vector2.ZERO, 8.5, Color(0.18, 0.88, 0.42, 0.18))
+	draw_circle(Vector2.ZERO, 6.0, Color(0.22, 0.92, 0.46, 0.38))
+	# Gem body (bright green diamond)
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(0, -6), Vector2(4.5, 0), Vector2(0, 5.5), Vector2(-4.5, 0),
+	]), Color(0.18, 0.88, 0.40, 1.0))
+	# Facet (light highlight)
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(0, -5), Vector2(2.2, -0.8), Vector2(0, 2.2), Vector2(-2.2, -0.8),
+	]), Color(0.60, 1.0, 0.72, 0.85))
+	# Center sparkle
+	draw_circle(Vector2.ZERO, 1.4, Color(1.0, 1.0, 1.0, 0.95))

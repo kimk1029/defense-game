@@ -29,11 +29,10 @@ var burn_damage: int = 0
 func _ready() -> void:
 	z_index = 5
 	add_to_group("enemies")
-	# AnimatedSprite2D 자동 추가
 	anim_sprite = AnimatedSprite2D.new()
 	anim_sprite.sprite_frames = load("res://assets/monster_frames.tres")
 	anim_sprite.play("walk")
-	anim_sprite.scale = Vector2(0.3, 0.3)
+	anim_sprite.scale = Vector2(0.675, 0.675)
 	add_child(anim_sprite)
 
 func _process(delta: float) -> void:
@@ -83,14 +82,16 @@ func _process(delta: float) -> void:
 		else:
 			anim_sprite.modulate = Color.WHITE
 
+	var old_pos := global_position
 	path_follow.progress += speed * slow_factor * delta
 	global_position = path_follow.global_position
 
-	# 이동 방향에 따라 좌우 반전
-	if anim_sprite and path_follow:
-		var vel_x = speed * slow_factor
-		if path_follow.progress_ratio < 1.0:
-			anim_sprite.flip_h = false
+	# 좌우 flip만 — 스프라이트는 항상 수평 유지
+	if anim_sprite:
+		var move_dir := global_position - old_pos
+		if move_dir.length_squared() > 0.1:
+			anim_sprite.rotation = 0.0
+			anim_sprite.flip_h = move_dir.x < 0.0
 
 	if path_follow.progress_ratio >= 1.0:
 		dead = true
@@ -126,7 +127,6 @@ func apply_burn(dmg: int, duration: float) -> void:
 		burn_tick_timer = 0.5
 
 func _draw() -> void:
-	# HP bar만 그리기
 	var bar_w: float = 30.0
 	var ratio: float = clamp(float(hp) / float(max_hp), 0.0, 1.0)
 	draw_rect(Rect2(Vector2(-bar_w / 2, -24), Vector2(bar_w, 4)), Color(0.2, 0.2, 0.2))

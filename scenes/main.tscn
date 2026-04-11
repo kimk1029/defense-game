@@ -5,7 +5,7 @@
 
 [sub_resource type="Curve2D" id="Curve2D_path"]
 _data = {
-"points": PackedVector2Array(0, 0, 150, 50, 80, 80, 0, -120, 0, 120, 640, 300, 0, -120, 0, 120, 80, 540, 0, -120, 0, 120, 640, 760, 19.487175, -110.25641, -19.487175, 110.25641, 80, 1000, -150, 0, 0, 0, 500, 1200)
+"points": PackedVector2Array(0, 0, 150, 50, 80, 80, 0, -120, 0, 120, 640, 300, 0, -120, 0, 120, 80, 540, 0, -120, 0, 120, 640, 760, 19.487175, -110.25641, -19.487175, 110.25641, 80, 1000, -150, 0, 0, 0, 500, 1140)
 }
 point_count = 6
 
@@ -57,6 +57,7 @@ curve = SubResource("Curve2D_path")
 [node name="Enemies" type="Node2D" parent="." unique_id=1634392233]
 
 [node name="Monster" type="CharacterBody2D" parent="Enemies" unique_id=847871128]
+visible = false
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Enemies/Monster" unique_id=1605651673]
 sprite_frames = SubResource("SpriteFrames_tefeu")
@@ -79,6 +80,8 @@ offset_left = 16.0
 offset_top = 16.0
 offset_right = 704.0
 offset_bottom = 110.0
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.12, 0.12, 0.08, 1.0)
 text = "골드: 100   생명: 20   웨이브: 1
 Lv 1   경험치 0/5"
 
@@ -87,7 +90,9 @@ visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 52
+theme_override_colors/font_color = Color(0.12, 0.35, 0.05, 1.0)
+theme_override_colors/font_shadow_color = Color(0.85, 0.95, 0.55, 0.80)
 text = "라운드 1"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -97,32 +102,184 @@ visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0, 0, 0, 0.75)
+color = Color(0.06, 0.04, 0.02, 0.86)
 
-[node name="VBox" type="VBoxContainer" parent="HUD/UpgradeMenu" unique_id=574236263]
-layout_mode = 0
-anchor_left = 0.08
-anchor_top = 0.28
-anchor_right = 0.92
-anchor_bottom = 0.78
-theme_override_constants/separation = 24
+[node name="Panel" type="PanelContainer" parent="HUD/UpgradeMenu"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -330.0
+offset_top = -220.0
+offset_right = 330.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="Title" type="Label" parent="HUD/UpgradeMenu/VBox" unique_id=547409386]
+[node name="ContentVBox" type="VBoxContainer" parent="HUD/UpgradeMenu/Panel"]
 layout_mode = 2
-text = "레벨 업! 업그레이드를 선택하세요"
+theme_override_constants/separation = 10
+
+[node name="Header" type="Label" parent="HUD/UpgradeMenu/Panel/ContentVBox"]
+layout_mode = 2
+text = "⚔  LEVEL UP!  ⚔"
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 30
+theme_override_colors/font_color = Color(0.92, 0.76, 0.32, 1.0)
 
-[node name="B0" type="Button" parent="HUD/UpgradeMenu/VBox" unique_id=1251782675]
-custom_minimum_size = Vector2(0, 90)
+[node name="SubHeader" type="Label" parent="HUD/UpgradeMenu/Panel/ContentVBox"]
 layout_mode = 2
-text = "Option 1"
+text = "강화를 선택하세요"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.72, 0.62, 0.44, 1.0)
 
-[node name="B1" type="Button" parent="HUD/UpgradeMenu/VBox" unique_id=404664406]
-custom_minimum_size = Vector2(0, 90)
+[node name="Divider" type="Control" parent="HUD/UpgradeMenu/Panel/ContentVBox"]
 layout_mode = 2
-text = "Option 2"
+custom_minimum_size = Vector2(0, 4)
 
-[node name="B2" type="Button" parent="HUD/UpgradeMenu/VBox" unique_id=506981191]
-custom_minimum_size = Vector2(0, 90)
+[node name="CardsRow" type="HBoxContainer" parent="HUD/UpgradeMenu/Panel/ContentVBox"]
 layout_mode = 2
-text = "Option 3"
+theme_override_constants/separation = 10
+
+[node name="Card0" type="PanelContainer" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InnerVBox" type="VBoxContainer" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card0"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="Label" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card0/InnerVBox"]
+layout_mode = 2
+text = "⚡"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 38
+theme_override_colors/font_color = Color(0.92, 0.76, 0.32, 1.0)
+
+[node name="NameLabel" type="Label" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card0/InnerVBox"]
+layout_mode = 2
+text = "업그레이드"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.88, 0.74, 0.48, 1.0)
+
+[node name="DescLabel" type="Label" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card0/InnerVBox"]
+layout_mode = 2
+text = "설명"
+horizontal_alignment = 1
+autowrap_mode = 3
+size_flags_vertical = 0
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.76, 0.68, 0.52, 1.0)
+
+[node name="Btn" type="Button" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card0/InnerVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+text = "선택"
+theme_override_font_sizes/font_size = 16
+
+[node name="Card1" type="PanelContainer" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InnerVBox" type="VBoxContainer" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card1"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="Label" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card1/InnerVBox"]
+layout_mode = 2
+text = "❄"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 38
+theme_override_colors/font_color = Color(0.92, 0.76, 0.32, 1.0)
+
+[node name="NameLabel" type="Label" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card1/InnerVBox"]
+layout_mode = 2
+text = "업그레이드"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.88, 0.74, 0.48, 1.0)
+
+[node name="DescLabel" type="Label" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card1/InnerVBox"]
+layout_mode = 2
+text = "설명"
+horizontal_alignment = 1
+autowrap_mode = 3
+size_flags_vertical = 0
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.76, 0.68, 0.52, 1.0)
+
+[node name="Btn" type="Button" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card1/InnerVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+text = "선택"
+theme_override_font_sizes/font_size = 16
+
+[node name="Card2" type="PanelContainer" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InnerVBox" type="VBoxContainer" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card2"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="Label" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card2/InnerVBox"]
+layout_mode = 2
+text = "☄"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 38
+theme_override_colors/font_color = Color(0.92, 0.76, 0.32, 1.0)
+
+[node name="NameLabel" type="Label" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card2/InnerVBox"]
+layout_mode = 2
+text = "업그레이드"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.88, 0.74, 0.48, 1.0)
+
+[node name="DescLabel" type="Label" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card2/InnerVBox"]
+layout_mode = 2
+text = "설명"
+horizontal_alignment = 1
+autowrap_mode = 3
+size_flags_vertical = 0
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.76, 0.68, 0.52, 1.0)
+
+[node name="Btn" type="Button" parent="HUD/UpgradeMenu/Panel/ContentVBox/CardsRow/Card2/InnerVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+text = "선택"
+theme_override_font_sizes/font_size = 16
+
+[node name="TowerBar" type="Control" parent="HUD"]
+layout_mode = 0
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -118.0
+
+[node name="BarBG" type="ColorRect" parent="HUD/TowerBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.14, 0.22, 0.10, 1.0)
+
+[node name="TopLine" type="ColorRect" parent="HUD/TowerBar"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_bottom = 3.0
+color = Color(0.32, 0.55, 0.18, 1.0)
+
+[node name="BtnRow" type="HBoxContainer" parent="HUD/TowerBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 3
