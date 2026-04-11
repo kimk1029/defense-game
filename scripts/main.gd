@@ -26,6 +26,11 @@ var tower_info_popup: PanelContainer = null
 var tower_upgrade_panel: Control = null
 var selected_placed_tower: Tower = null
 
+# === Game over panel ===
+var game_over_panel: Control = null
+var game_over_wave_lbl: Label = null
+var game_over_stage_lbl: Label = null
+
 # === Wave control ===
 var wave_in_progress: bool = false
 var enemies_to_spawn: int = 0
@@ -138,10 +143,12 @@ func _ready() -> void:
 		btns.append(btn)
 		btn.pressed.connect(_on_upgrade_picked.bind(i))
 
+	_setup_stage_path()
 	_style_upgrade_menu()
 	_build_tower_bar()
 	_build_tower_info_popup()
 	_build_tower_upgrade_panel()
+	_build_game_over_panel()
 	_refresh_hud()
 	_start_next_wave_after_delay()
 	queue_redraw()
@@ -774,6 +781,188 @@ func _near_path(pos: Vector2, threshold: float) -> bool:
 			return true
 	return false
 
+# ── Stage path setup ─────────────────────────────────────────────────────────
+
+func _setup_stage_path() -> void:
+	var curve := Curve2D.new()
+	match GameState.selected_stage:
+		1: _path_stage1(curve)
+		2: _path_stage2(curve)
+		3: _path_stage3(curve)
+		4: _path_stage4(curve)
+		_: _path_stage1(curve)
+	path.curve = curve
+	# 스테이지 이름을 웨이브 알림에 잠깐 표시
+	wave_announce.text = "Stage %d  %s" % [
+		GameState.selected_stage,
+		GameState.STAGE_NAMES[GameState.selected_stage - 1]
+	]
+	wave_announce.modulate.a = 1.0
+	wave_announce.visible    = true
+	wave_announce_timer      = 2.5
+
+func _path_stage1(c: Curve2D) -> void:
+	# 초원의 길 — 완만한 S자
+	c.add_point(Vector2(80,   80),  Vector2(0, 0),     Vector2(150, 50))
+	c.add_point(Vector2(640,  300), Vector2(0, -120),  Vector2(0, 120))
+	c.add_point(Vector2(80,   540), Vector2(0, -120),  Vector2(0, 120))
+	c.add_point(Vector2(640,  760), Vector2(-20, -110),Vector2(20, 110))
+	c.add_point(Vector2(80,   1000),Vector2(-150, 0),  Vector2(0, 0))
+	c.add_point(Vector2(500,  1140),Vector2(0, 0),     Vector2(0, 0))
+
+func _path_stage2(c: Curve2D) -> void:
+	# 지그재그 협로 — 촘촘한 지그재그, 7번 꺾임
+	c.add_point(Vector2(80,   60),  Vector2(0, 0),     Vector2(100, 0))
+	c.add_point(Vector2(640,  170), Vector2(-100, -30),Vector2(-100, 30))
+	c.add_point(Vector2(80,   300), Vector2(100, -30), Vector2(100, 30))
+	c.add_point(Vector2(640,  430), Vector2(-100, -30),Vector2(-100, 30))
+	c.add_point(Vector2(80,   560), Vector2(100, -30), Vector2(100, 30))
+	c.add_point(Vector2(640,  690), Vector2(-100, -30),Vector2(-100, 30))
+	c.add_point(Vector2(80,   820), Vector2(100, -30), Vector2(100, 30))
+	c.add_point(Vector2(640,  950), Vector2(-100, -30),Vector2(-50, 60))
+	c.add_point(Vector2(360,  1130),Vector2(0, 0),     Vector2(0, 0))
+
+func _path_stage3(c: Curve2D) -> void:
+	# 나선 계곡 — 시계 방향 대형 루프 후 중앙 하강
+	c.add_point(Vector2(360,  60),  Vector2(0, 0),     Vector2(150, 0))
+	c.add_point(Vector2(620,  230), Vector2(0, -100),  Vector2(0, 120))
+	c.add_point(Vector2(600,  660), Vector2(80, -80),  Vector2(-60, 80))
+	c.add_point(Vector2(360,  900), Vector2(100, 60),  Vector2(-100, -60))
+	c.add_point(Vector2(120,  660), Vector2(60, 80),   Vector2(-60, -80))
+	c.add_point(Vector2(160,  280), Vector2(-80, 80),  Vector2(60, -80))
+	c.add_point(Vector2(360,  460), Vector2(-80, -40), Vector2(0, 80))
+	c.add_point(Vector2(360,  1100),Vector2(0, 0),     Vector2(0, 0))
+
+func _path_stage4(c: Curve2D) -> void:
+	# 격자 미로 — 직각 수평 패스 3개
+	c.add_point(Vector2(80,   80),  Vector2(0, 0),     Vector2(0, 0))
+	c.add_point(Vector2(640,  80),  Vector2(0, 0),     Vector2(0, 0))
+	c.add_point(Vector2(640,  380), Vector2(0, 0),     Vector2(0, 0))
+	c.add_point(Vector2(80,   380), Vector2(0, 0),     Vector2(0, 0))
+	c.add_point(Vector2(80,   680), Vector2(0, 0),     Vector2(0, 0))
+	c.add_point(Vector2(640,  680), Vector2(0, 0),     Vector2(0, 0))
+	c.add_point(Vector2(640,  980), Vector2(0, 0),     Vector2(0, 0))
+	c.add_point(Vector2(360,  1120),Vector2(0, 0),     Vector2(0, 0))
+
+# ── Game over panel ───────────────────────────────────────────────────────────
+
+func _build_game_over_panel() -> void:
+	game_over_panel = Control.new()
+	game_over_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	game_over_panel.visible      = false
+	game_over_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	$HUD.add_child(game_over_panel)
+
+	# 어두운 오버레이
+	var overlay := ColorRect.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.0, 0.0, 0.0, 0.80)
+	game_over_panel.add_child(overlay)
+
+	# 중앙 패널
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.offset_left   = -220.0
+	panel.offset_right  =  220.0
+	panel.offset_top    = -195.0
+	panel.offset_bottom =  195.0
+	var ps := StyleBoxFlat.new()
+	ps.bg_color    = Color(0.10, 0.04, 0.03, 0.98)
+	ps.border_color = Color(0.82, 0.22, 0.08, 0.92)
+	ps.border_width_left = ps.border_width_right = ps.border_width_top = ps.border_width_bottom = 3
+	ps.corner_radius_top_left    = 16; ps.corner_radius_top_right   = 16
+	ps.corner_radius_bottom_left = 16; ps.corner_radius_bottom_right= 16
+	ps.content_margin_left  = 28; ps.content_margin_right  = 28
+	ps.content_margin_top   = 22; ps.content_margin_bottom = 22
+	panel.add_theme_stylebox_override("panel", ps)
+	game_over_panel.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 14)
+	panel.add_child(vbox)
+
+	# GAME OVER 제목
+	var title_lbl := Label.new()
+	title_lbl.text = "GAME  OVER"
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 46)
+	title_lbl.add_theme_color_override("font_color", Color(0.96, 0.22, 0.08))
+	vbox.add_child(title_lbl)
+
+	var sep := HSeparator.new()
+	sep.add_theme_color_override("color", Color(0.80, 0.20, 0.08, 0.55))
+	vbox.add_child(sep)
+
+	# 웨이브 정보
+	game_over_wave_lbl = Label.new()
+	game_over_wave_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	game_over_wave_lbl.add_theme_font_size_override("font_size", 24)
+	game_over_wave_lbl.add_theme_color_override("font_color", Color(0.92, 0.78, 0.42))
+	vbox.add_child(game_over_wave_lbl)
+
+	# 스테이지 정보
+	game_over_stage_lbl = Label.new()
+	game_over_stage_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	game_over_stage_lbl.add_theme_font_size_override("font_size", 15)
+	game_over_stage_lbl.add_theme_color_override("font_color", Color(0.65, 0.55, 0.38))
+	vbox.add_child(game_over_stage_lbl)
+
+	var sep2 := HSeparator.new()
+	sep2.add_theme_color_override("color", Color(0.60, 0.20, 0.08, 0.35))
+	vbox.add_child(sep2)
+
+	# 다시하기 버튼
+	var retry_btn := Button.new()
+	retry_btn.text = "다시하기"
+	retry_btn.custom_minimum_size = Vector2(240, 52)
+	retry_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	retry_btn.add_theme_font_size_override("font_size", 24)
+	retry_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	var rs := StyleBoxFlat.new()
+	rs.bg_color    = Color(0.20, 0.34, 0.10, 0.95)
+	rs.border_color = Color(0.62, 0.84, 0.28, 0.92)
+	rs.border_width_left = rs.border_width_right = rs.border_width_top = rs.border_width_bottom = 2
+	rs.corner_radius_top_left = rs.corner_radius_top_right = 10
+	rs.corner_radius_bottom_left = rs.corner_radius_bottom_right = 10
+	var rsh := rs.duplicate() as StyleBoxFlat
+	rsh.bg_color = Color(0.30, 0.48, 0.16, 0.98)
+	retry_btn.add_theme_stylebox_override("normal", rs)
+	retry_btn.add_theme_stylebox_override("hover",  rsh)
+	retry_btn.add_theme_stylebox_override("pressed", rs)
+	retry_btn.add_theme_color_override("font_color", Color(0.95, 0.90, 0.40))
+	retry_btn.pressed.connect(_on_retry_pressed)
+	vbox.add_child(retry_btn)
+
+	# 타이틀로 버튼
+	var title_btn := Button.new()
+	title_btn.text = "타이틀로"
+	title_btn.custom_minimum_size = Vector2(180, 42)
+	title_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	title_btn.add_theme_font_size_override("font_size", 18)
+	title_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	var ts := StyleBoxFlat.new()
+	ts.bg_color    = Color(0.18, 0.12, 0.07, 0.90)
+	ts.border_color = Color(0.55, 0.42, 0.20, 0.75)
+	ts.border_width_left = ts.border_width_right = ts.border_width_top = ts.border_width_bottom = 1
+	ts.corner_radius_top_left = ts.corner_radius_top_right = 8
+	ts.corner_radius_bottom_left = ts.corner_radius_bottom_right = 8
+	var tsh := ts.duplicate() as StyleBoxFlat
+	tsh.bg_color = Color(0.26, 0.18, 0.10, 0.95)
+	title_btn.add_theme_stylebox_override("normal", ts)
+	title_btn.add_theme_stylebox_override("hover",  tsh)
+	title_btn.add_theme_stylebox_override("pressed", ts)
+	title_btn.add_theme_color_override("font_color", Color(0.78, 0.66, 0.44))
+	title_btn.pressed.connect(_on_title_btn_pressed)
+	vbox.add_child(title_btn)
+
+func _on_retry_pressed() -> void:
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+func _on_title_btn_pressed() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/title.tscn")
+
 func _find_tower_at(pos: Vector2) -> Tower:
 	for t in towers_root.get_children():
 		if t is Tower and t.position.distance_to(pos) < 30.0:
@@ -995,4 +1184,7 @@ func _refresh_hud() -> void:
 
 func _game_over() -> void:
 	get_tree().paused = true
-	stats_label.text  = "게임 오버 — 웨이브 %d 도달" % wave
+	var stage_name: String = GameState.STAGE_NAMES[GameState.selected_stage - 1]
+	game_over_wave_lbl.text  = "웨이브 %d 도달" % wave
+	game_over_stage_lbl.text = "Stage %d  %s" % [GameState.selected_stage, stage_name]
+	game_over_panel.visible = true
