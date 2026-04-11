@@ -23,10 +23,17 @@ var builtin_weapon: String = ""
 var builtin_cd: float = 0.0
 const BUILTIN_LEVEL: int = 3
 
-# 업그레이드 카운터 — 3회 이상이면 맥스레벨 효과 활성화
-var upgrade_count: int = 0
-const MAX_UPGRADE: int = 3
-var _setup_done: bool = false
+# 개별 포탑 레벨 (1~3)
+var tower_level: int = 1
+const MAX_TOWER_LEVEL: int = 3
+# 설치 비용 추적 (판매 환급 계산용)
+var tower_idx: int = -1
+var total_invested: int = 0
+# 전역 모드 캐시 (개별 레벨업 시 재적용용)
+var _cached_d_mult:   float = 1.0
+var _cached_r_mult:   float = 1.0
+var _cached_rng_mult: float = 1.0
+var _cached_p_mult:   float = 1.0
 
 func _ready() -> void:
 	z_index = 4
@@ -42,17 +49,41 @@ func setup_type(td: Dictionary) -> void:
 	base_projectile_speed = float(td["b_speed"])
 	if builtin_weapon != "":
 		builtin_cd = randf_range(0.3, _get_sp_cooldown(builtin_weapon))
-	_setup_done = true
 
 func apply_global_mods(d_mult: float, r_mult: float, rng_mult: float, p_mult: float) -> void:
-	damage           = int(round(base_damage * d_mult))
-	fire_rate        = base_fire_rate * r_mult
-	range_px         = base_range * rng_mult
+	_cached_d_mult   = d_mult
+	_cached_r_mult   = r_mult
+	_cached_rng_mult = rng_mult
+	_cached_p_mult   = p_mult
+	# 개별 레벨 보너스: 레벨당 공격력+25%, 공속+15%, 사거리+10%
+	var lv: float    = float(tower_level - 1)
+	var lv_dmg:  float = 1.0 + 0.25 * lv
+	var lv_rate: float = 1.0 + 0.15 * lv
+	var lv_rng:  float = 1.0 + 0.10 * lv
+	damage           = int(round(base_damage * d_mult * lv_dmg))
+	fire_rate        = base_fire_rate * r_mult * lv_rate
+	range_px         = base_range * rng_mult * lv_rng
 	projectile_speed = base_projectile_speed * p_mult
-	# 설치 후 업그레이드 횟수 누적
-	if _setup_done:
-		upgrade_count += 1
 	queue_redraw()
+
+# 개별 포탑 레벨업
+func do_tower_upgrade() -> void:
+	if tower_level >= MAX_TOWER_LEVEL:
+		return
+	tower_level += 1
+	apply_global_mods(_cached_d_mult, _cached_r_mult, _cached_rng_mult, _cached_p_mult)
+
+# 다음 레벨 스탯 미리보기
+func get_next_level_stats() -> Dictionary:
+	var lv: float = float(tower_level)   # 다음 레벨 = tower_level + 1 → lv 증가분 = tower_level
+	var lv_dmg:  float = 1.0 + 0.25 * lv
+	var lv_rate: float = 1.0 + 0.15 * lv
+	var lv_rng:  float = 1.0 + 0.10 * lv
+	return {
+		"damage":    int(round(base_damage * _cached_d_mult * lv_dmg)),
+		"fire_rate": base_fire_rate * _cached_r_mult * lv_rate,
+		"range":     int(base_range * _cached_rng_mult * lv_rng),
+	}
 
 func _get_sp_cooldown(key: String) -> float:
 	match key:
@@ -151,7 +182,7 @@ func _fire_special(key: String, target: Node2D) -> void:
 			met.radius       = splash_rad
 			proj_root.add_child(met)
 			var impact_pos: Vector2  = target.global_position
-			var is_max: bool         = upgrade_count >= MAX_UPGRADE
+			var is_max: bool         = tower_level >= MAX_TOWER_LEVEL
 			var travel_t: float      = maxf(0.3, global_position.distance_to(impact_pos) / 210.0)
 			met.start(impact_pos)
 			# 착탄 타이밍에 맥스레벨이면 지면 화염 생성
@@ -235,7 +266,33 @@ func _draw() -> void:
 		"quake":     _draw_quake(t)
 	draw_arc(Vector2.ZERO, range_px, 0, TAU, 64,
 		Color(tower_color.r, tower_color.g, tower_color.b, 0.10), 1.0)
+	# ── 레벨 배지 ────────────────────────────────────────────────────────
+	if tower_level >= 2:
+		var is_max: bool = tower_level >= MAX_TOWER_LEVEL
+		var badge_col: Color = Color(1.0, 0.85, 0.10) if is_max else Color(0.72, 0.92, 0.38)
+		var glow_col: Color  = Color(1.0, 0.70, 0.0, 0.35) if is_max else Color(0.50, 0.85, 0.20, 0.28)
+		# 배지 배경
+		draw_circle(Vector2(16, -16), 9.0, Color(0.06, 0.04, 0.02, 0.85))
+		draw_circle(Vector2(16, -16), 9.0, glow_col)
+		draw_arc(Vector2(16, -16), 9.0, 0, TAU, 20, badge_col, 1.5)
+		# 별 표시 (맥스: 2개, Lv2: 1개)
+		for s in tower_level - 1:
+			var sx: float = 16.0 + float(s - (tower_level - 2) / 2.0) * 7.0
+			_draw_star(Vector2(sx, -16), 3.5, badge_col)
+		# 맥스레벨 펄스 링
+		if is_max:
+			var pulse: float = 0.5 + 0.5 * sin(t * 3.0)
+			draw_arc(Vector2(16, -16), 11.0 + pulse * 2.0, 0, TAU, 16,
+				Color(1.0, 0.80, 0.10, 0.50 * pulse), 1.5)
 
+
+func _draw_star(center: Vector2, r: float, color: Color) -> void:
+	var pts := PackedVector2Array()
+	for i in 10:
+		var a: float = TAU * float(i) / 10.0 - PI / 2.0
+		var rv: float = r if i % 2 == 0 else r * 0.42
+		pts.append(center + Vector2(cos(a), sin(a)) * rv)
+	draw_colored_polygon(pts, color)
 
 # ── Basic: 둥근 석조 포탑 + 회전포신 ─────────────────────────────────────
 func _draw_basic(t: float) -> void:

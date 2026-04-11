@@ -22,6 +22,10 @@ var selected_tower_idx: int = 0
 var tower_btns: Array = []
 var tower_info_popup: PanelContainer = null
 
+# === Tower upgrade panel ===
+var tower_upgrade_panel: Control = null
+var selected_placed_tower: Tower = null
+
 # === Wave control ===
 var wave_in_progress: bool = false
 var enemies_to_spawn: int = 0
@@ -137,6 +141,7 @@ func _ready() -> void:
 	_style_upgrade_menu()
 	_build_tower_bar()
 	_build_tower_info_popup()
+	_build_tower_upgrade_panel()
 	_refresh_hud()
 	_start_next_wave_after_delay()
 	queue_redraw()
@@ -562,10 +567,29 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if get_tree().paused:
 		return
+	var touch_pos: Vector2 = Vector2.ZERO
+	var is_tap: bool = false
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_try_place_tower(event.position)
+		touch_pos = event.position
+		is_tap = true
 	elif event is InputEventScreenTouch and event.pressed:
-		_try_place_tower(event.position)
+		touch_pos = event.position
+		is_tap = true
+	if not is_tap:
+		return
+	# 업그레이드 패널이 열려 있으면 외부 탭으로 닫기
+	if tower_upgrade_panel != null and tower_upgrade_panel.visible:
+		var pr: Rect2 = Rect2(tower_upgrade_panel.position, tower_upgrade_panel.size)
+		if not pr.has_point(touch_pos):
+			_hide_tower_upgrade_panel()
+			return
+		return  # 패널 내부 탭은 버튼이 처리
+	# 배치된 타워 클릭 감지
+	var hit_tower: Tower = _find_tower_at(touch_pos)
+	if hit_tower != null:
+		_show_tower_upgrade_panel(hit_tower)
+		return
+	_try_place_tower(touch_pos)
 
 # ── Wave ──────────────────────────────────────────────────────────────────────
 
@@ -732,6 +756,8 @@ func _try_place_tower(pos: Vector2) -> void:
 	tower.enemies_root_path     = enemies_root.get_path()
 	tower.projectiles_root_path = projectiles_root.get_path()
 	tower.projectile_scene_script = preload("res://scripts/projectile.gd")
+	tower.tower_idx      = selected_tower_idx
+	tower.total_invested = cost
 	tower.setup_type(td)
 	tower.apply_global_mods(mod_damage_mult, mod_fire_rate_mult,
 		mod_range_mult, mod_projectile_speed_mult)
@@ -747,6 +773,214 @@ func _near_path(pos: Vector2, threshold: float) -> bool:
 		if p.distance_to(pos) < threshold:
 			return true
 	return false
+
+func _find_tower_at(pos: Vector2) -> Tower:
+	for t in towers_root.get_children():
+		if t is Tower and t.position.distance_to(pos) < 30.0:
+			return t as Tower
+	return null
+
+# ── Tower upgrade panel ───────────────────────────────────────────────────────
+
+func _build_tower_upgrade_panel() -> void:
+	tower_upgrade_panel = Control.new()
+	tower_upgrade_panel.visible = false
+	tower_upgrade_panel.z_index = 25
+	$HUD.add_child(tower_upgrade_panel)
+
+	var panel := PanelContainer.new()
+	panel.name = "Panel"
+	panel.custom_minimum_size = Vector2(260, 0)
+	var ps := StyleBoxFlat.new()
+	ps.bg_color            = Color(0.14, 0.09, 0.05, 0.98)
+	ps.border_color        = Color(0.70, 0.52, 0.22, 0.95)
+	ps.border_width_left   = 2; ps.border_width_right  = 2
+	ps.border_width_top    = 2; ps.border_width_bottom = 2
+	ps.corner_radius_top_left    = 12; ps.corner_radius_top_right   = 12
+	ps.corner_radius_bottom_left = 12; ps.corner_radius_bottom_right= 12
+	ps.content_margin_left = 14; ps.content_margin_right = 14
+	ps.content_margin_top  = 12; ps.content_margin_bottom= 12
+	panel.add_theme_stylebox_override("panel", ps)
+	tower_upgrade_panel.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 7)
+	panel.add_child(vbox)
+
+	# 타워 이름 + 레벨
+	var title_lbl := Label.new()
+	title_lbl.name = "TitleLbl"
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 18)
+	title_lbl.add_theme_color_override("font_color", Color(0.95, 0.80, 0.35))
+	vbox.add_child(title_lbl)
+
+	var sep1 := HSeparator.new()
+	sep1.add_theme_color_override("color", Color(0.60, 0.45, 0.20, 0.55))
+	vbox.add_child(sep1)
+
+	# 현재 스탯
+	var cur_lbl := Label.new()
+	cur_lbl.name = "CurStats"
+	cur_lbl.add_theme_font_size_override("font_size", 12)
+	cur_lbl.add_theme_color_override("font_color", Color(0.80, 0.72, 0.54))
+	vbox.add_child(cur_lbl)
+
+	# 다음 레벨 스탯 (맥스가 아닐 때만 표시)
+	var next_lbl := Label.new()
+	next_lbl.name = "NextStats"
+	next_lbl.add_theme_font_size_override("font_size", 12)
+	next_lbl.add_theme_color_override("font_color", Color(0.55, 0.92, 0.45))
+	vbox.add_child(next_lbl)
+
+	var sep2 := HSeparator.new()
+	sep2.add_theme_color_override("color", Color(0.60, 0.45, 0.20, 0.35))
+	vbox.add_child(sep2)
+
+	# 버튼 행
+	var btn_row := HBoxContainer.new()
+	btn_row.name = "BtnRow"
+	btn_row.add_theme_constant_override("separation", 8)
+	vbox.add_child(btn_row)
+
+	# 업그레이드 버튼
+	var upg_btn := Button.new()
+	upg_btn.name = "UpgradeBtn"
+	upg_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	upg_btn.custom_minimum_size = Vector2(0, 38)
+	upg_btn.add_theme_font_size_override("font_size", 14)
+	_style_action_btn(upg_btn, Color(0.25, 0.18, 0.08), Color(0.75, 0.56, 0.22))
+	upg_btn.pressed.connect(_on_tower_upgrade_btn)
+	btn_row.add_child(upg_btn)
+
+	# 판매 버튼
+	var sell_btn := Button.new()
+	sell_btn.name = "SellBtn"
+	sell_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sell_btn.custom_minimum_size = Vector2(0, 38)
+	sell_btn.add_theme_font_size_override("font_size", 14)
+	_style_action_btn(sell_btn, Color(0.22, 0.10, 0.06), Color(0.82, 0.38, 0.18))
+	sell_btn.pressed.connect(_on_tower_sell_btn)
+	btn_row.add_child(sell_btn)
+
+	# 닫기 버튼
+	var close_btn := Button.new()
+	close_btn.name = "CloseBtn"
+	close_btn.text = "✕"
+	close_btn.custom_minimum_size = Vector2(36, 38)
+	close_btn.add_theme_font_size_override("font_size", 14)
+	_style_action_btn(close_btn, Color(0.18, 0.14, 0.10), Color(0.55, 0.45, 0.28))
+	close_btn.pressed.connect(_hide_tower_upgrade_panel)
+	btn_row.add_child(close_btn)
+
+func _style_action_btn(btn: Button, bg: Color, bd: Color) -> void:
+	var mk := func(bg_mult: float) -> StyleBoxFlat:
+		var s := StyleBoxFlat.new()
+		s.bg_color = Color(bg.r * bg_mult, bg.g * bg_mult, bg.b * bg_mult, 0.95)
+		s.border_color = bd
+		s.border_width_left = 1; s.border_width_right  = 1
+		s.border_width_top  = 1; s.border_width_bottom = 1
+		s.corner_radius_top_left    = 6; s.corner_radius_top_right   = 6
+		s.corner_radius_bottom_left = 6; s.corner_radius_bottom_right= 6
+		return s
+	btn.add_theme_stylebox_override("normal",  mk.call(1.0))
+	btn.add_theme_stylebox_override("hover",   mk.call(1.5))
+	btn.add_theme_stylebox_override("pressed", mk.call(0.7))
+	btn.add_theme_color_override("font_color",
+		Color(minf(bd.r + 0.3, 1.0), minf(bd.g + 0.3, 1.0), minf(bd.b + 0.3, 1.0)))
+
+func _show_tower_upgrade_panel(tower: Tower) -> void:
+	selected_placed_tower = tower
+	_refresh_tower_upgrade_panel()
+	# 포탑 위쪽에 패널 배치 (고정 크기 기준)
+	var vp: Vector2 = get_viewport_rect().size
+	var pw: float = 270.0
+	var ph: float = 185.0
+	var tx: float = tower.position.x - pw * 0.5
+	var ty: float = tower.position.y - ph - 38.0
+	tx = clamp(tx, 4.0, vp.x - pw - 4.0)
+	ty = clamp(ty, 4.0, vp.y - 120.0 - ph - 4.0)
+	tower_upgrade_panel.position = Vector2(tx, ty)
+	tower_upgrade_panel.get_node("Panel").position = Vector2.ZERO
+	tower_upgrade_panel.visible = true
+
+func _refresh_tower_upgrade_panel() -> void:
+	if selected_placed_tower == null or not is_instance_valid(selected_placed_tower):
+		_hide_tower_upgrade_panel()
+		return
+	var tower: Tower = selected_placed_tower
+	var td: Dictionary = TOWER_TYPES[tower.tower_idx] if tower.tower_idx >= 0 else TOWER_TYPES[0]
+	var lv: int    = tower.tower_level
+	var max_lv: int = tower.MAX_TOWER_LEVEL
+	var stars: String = "★".repeat(lv) + "☆".repeat(max_lv - lv)
+
+	var panel: PanelContainer = tower_upgrade_panel.get_node("Panel") as PanelContainer
+	var vbox: VBoxContainer   = panel.get_child(0) as VBoxContainer
+	(vbox.get_node("TitleLbl") as Label).text = "%s %s  %s" % [
+		str(td["icon"]), str(td["name"]), stars]
+
+	# 현재 스탯
+	(vbox.get_node("CurStats") as Label).text = (
+		"현재  ATK %d  /  %.1f/s  /  사거리 %d" % [
+			tower.damage, tower.fire_rate, int(tower.range_px)])
+
+	# 다음 레벨 스탯 & 업그레이드 버튼
+	var upg_btn: Button  = vbox.get_node("BtnRow/UpgradeBtn") as Button
+	var next_lbl: Label  = vbox.get_node("NextStats") as Label
+	var sell_btn: Button = vbox.get_node("BtnRow/SellBtn") as Button
+
+	if lv < max_lv:
+		var ns: Dictionary = tower.get_next_level_stats()
+		next_lbl.text = "다음  ATK %d  /  %.1f/s  /  사거리 %d" % [
+			int(ns["damage"]), float(ns["fire_rate"]), int(ns["range"])]
+		next_lbl.visible = true
+		var upg_cost: int = _get_tower_upgrade_cost(tower)
+		var can_afford: bool = gold >= upg_cost
+		upg_btn.text = "강화 Lv%d→%d  (%dg)" % [lv, lv + 1, upg_cost]
+		upg_btn.disabled = not can_afford
+	else:
+		next_lbl.text = "★ 최대 레벨 달성 ★"
+		next_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.15))
+		next_lbl.visible = true
+		upg_btn.text = "최대 레벨"
+		upg_btn.disabled = true
+
+	var sell_val: int = int(tower.total_invested * 0.6)
+	sell_btn.text = "판매 (+%dg)" % sell_val
+
+func _get_tower_upgrade_cost(tower: Tower) -> int:
+	var base_cost: int = int(TOWER_TYPES[maxi(0, tower.tower_idx)]["cost"])
+	# Lv1→2: 비용의 60%, Lv2→3: 비용의 100%
+	if tower.tower_level == 1:
+		return int(base_cost * 0.6)
+	return base_cost
+
+func _hide_tower_upgrade_panel() -> void:
+	if tower_upgrade_panel != null:
+		tower_upgrade_panel.visible = false
+	selected_placed_tower = null
+
+func _on_tower_upgrade_btn() -> void:
+	if selected_placed_tower == null or not is_instance_valid(selected_placed_tower):
+		_hide_tower_upgrade_panel(); return
+	var cost: int = _get_tower_upgrade_cost(selected_placed_tower)
+	if gold < cost: return
+	gold -= cost
+	selected_placed_tower.total_invested += cost
+	selected_placed_tower.do_tower_upgrade()
+	_refresh_tower_upgrade_panel()
+	_refresh_hud()
+	_update_tower_bar_btns()
+
+func _on_tower_sell_btn() -> void:
+	if selected_placed_tower == null or not is_instance_valid(selected_placed_tower):
+		_hide_tower_upgrade_panel(); return
+	var refund: int = int(selected_placed_tower.total_invested * 0.6)
+	gold += refund
+	selected_placed_tower.queue_free()
+	_hide_tower_upgrade_panel()
+	_refresh_hud()
+	_update_tower_bar_btns()
 
 # ── HUD ───────────────────────────────────────────────────────────────────────
 
