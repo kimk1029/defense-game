@@ -206,14 +206,15 @@ func _refresh_hud() -> void:
 func _build_tower_bar() -> void:
 	for c in tower_bar_row.get_children():
 		c.queue_free()
-	tower_bar_row.add_theme_constant_override("separation", 6)
+	tower_bar_row.add_theme_constant_override("separation", 3)
 
 	for id in TowerRegistry.get_all_ids():
 		var td: Dictionary = TowerRegistry.get_tower(id)
 		var btn := Button.new()
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.custom_minimum_size = Vector2(0.0, 108.0)
-		btn.add_theme_font_size_override("font_size", 14)
+		btn.clip_text = true
+		btn.add_theme_font_size_override("font_size", 12)
 		btn.text = "%s\n%s\n%dg" % [td["icon"], td["name"], td["cost"]]
 		_style_tower_btn(btn, td["color"] as Color)
 		btn.pressed.connect(_on_tower_bar_pressed.bind(id))

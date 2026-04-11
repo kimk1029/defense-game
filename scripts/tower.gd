@@ -68,7 +68,30 @@ func _process(delta: float) -> void:
 	if target == null:
 		return
 	behavior.fire(target)
-	cooldown = 1.0 / maxf(0.05, attack_speed)
+	# 효과 공격속도 = 기본 공속 * (1 + 릴레이 오라 버프)
+	var effective_speed: float = attack_speed * (1.0 + _compute_aura_bonus())
+	cooldown = 1.0 / maxf(0.05, effective_speed)
+
+# 주변 릴레이 포탑들로부터의 공속 보너스를 누적 계산.
+# 간단한 O(N) 검사 — N이 작아(수십대) 매 발사 때마다 해도 부담 없음.
+func _compute_aura_bonus() -> float:
+	if tower_id == &"relay":
+		return 0.0
+	var parent: Node = get_parent()
+	if parent == null:
+		return 0.0
+	var bonus: float = 0.0
+	for t in parent.get_children():
+		if not (t is Tower) or t == self:
+			continue
+		var relay: Tower = t
+		if relay.tower_id != &"relay":
+			continue
+		if relay.global_position.distance_to(global_position) > relay.attack_range:
+			continue
+		# 릴레이 레벨별 버프량
+		bonus += 0.12 + float(relay.level) * 0.04
+	return minf(bonus, 0.60)   # 과한 누적 방지용 상한
 
 func _enemies_in_range() -> Array:
 	var result: Array = []

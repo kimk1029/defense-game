@@ -42,8 +42,14 @@ func _hit_target() -> void:
 		queue_free()
 		return
 
-	target.take_hit(payload)
-	_hit_enemies.append(target)
+	var hit_pos: Vector2 = target.global_position
+
+	# 스플래시가 있으면 주변 적까지 같이 맞음
+	if payload != null and payload.splash_radius > 0.0:
+		_apply_splash(hit_pos)
+	else:
+		target.take_hit(payload)
+		_hit_enemies.append(target)
 
 	if payload != null and payload.pierce > 0:
 		payload.pierce -= 1
@@ -53,6 +59,34 @@ func _hit_target() -> void:
 			return
 
 	queue_free()
+
+func _apply_splash(center: Vector2) -> void:
+	if payload == null or payload.source == null or not is_instance_valid(payload.source):
+		return
+	var tower: Tower = payload.source as Tower
+	if tower == null or tower.enemies_root == null:
+		return
+	var r2: float = payload.splash_radius * payload.splash_radius
+	for e in tower.enemies_root.get_children():
+		if not (e is Enemy):
+			continue
+		var enemy: Enemy = e
+		if enemy.dead:
+			continue
+		if enemy.global_position.distance_squared_to(center) > r2:
+			continue
+		# 복제 페이로드: 스플래시 재적용 방지
+		var p2 := HitPayload.new()
+		p2.source = payload.source
+		p2.base_damage = payload.base_damage
+		p2.is_crit = payload.is_crit
+		p2.is_ultimate = payload.is_ultimate
+		p2.is_magic = payload.is_magic
+		p2.is_true_damage = payload.is_true_damage
+		for d in payload.debuffs:
+			p2.debuffs.append((d as StatusEffect).duplicate_effect())
+		enemy.take_hit(p2)
+		_hit_enemies.append(enemy)
 
 func _find_next_pierce_target() -> Enemy:
 	if payload == null or payload.source == null or not is_instance_valid(payload.source):
