@@ -910,14 +910,14 @@ func _refresh_tower_upgrade_panel() -> void:
 		return
 	var tower: Tower = selected_placed_tower
 	var td: Dictionary = TOWER_TYPES[tower.tower_idx] if tower.tower_idx >= 0 else TOWER_TYPES[0]
-	var lv: int    = tower.tower_level
+	var lv: int     = tower.tower_level
 	var max_lv: int = tower.MAX_TOWER_LEVEL
-	var stars: String = "★".repeat(lv) + "☆".repeat(max_lv - lv)
+	var lv_str: String = ("★MAX★" if lv >= max_lv else "Lv.%d / %d" % [lv, max_lv])
 
 	var panel: PanelContainer = tower_upgrade_panel.get_node("Panel") as PanelContainer
 	var vbox: VBoxContainer   = panel.get_child(0) as VBoxContainer
-	(vbox.get_node("TitleLbl") as Label).text = "%s %s  %s" % [
-		str(td["icon"]), str(td["name"]), stars]
+	(vbox.get_node("TitleLbl") as Label).text = "%s %s  [%s]" % [
+		str(td["icon"]), str(td["name"]), lv_str]
 
 	# 현재 스탯
 	(vbox.get_node("CurStats") as Label).text = (

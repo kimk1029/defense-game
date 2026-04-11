@@ -23,9 +23,9 @@ var builtin_weapon: String = ""
 var builtin_cd: float = 0.0
 const BUILTIN_LEVEL: int = 3
 
-# 개별 포탑 레벨 (1~3)
+# 개별 포탑 레벨 (1~5)
 var tower_level: int = 1
-const MAX_TOWER_LEVEL: int = 3
+const MAX_TOWER_LEVEL: int = 5
 # 설치 비용 추적 (판매 환급 계산용)
 var tower_idx: int = -1
 var total_invested: int = 0
@@ -176,7 +176,7 @@ func _fire_special(key: String, target: Node2D) -> void:
 
 		"meteor":
 			var met := Meteor.new()
-			var splash_dmg: int  = 8 + level * 7
+			var splash_dmg: int  = 6 + level * 5
 			var splash_rad: float = 55.0 + float(level) * 12.0
 			met.damage       = splash_dmg
 			met.radius       = splash_rad
@@ -266,24 +266,27 @@ func _draw() -> void:
 		"quake":     _draw_quake(t)
 	draw_arc(Vector2.ZERO, range_px, 0, TAU, 64,
 		Color(tower_color.r, tower_color.g, tower_color.b, 0.10), 1.0)
-	# ── 레벨 배지 ────────────────────────────────────────────────────────
+	# ── 레벨 배지 (Lv2 이상 표시) ──────────────────────────────────────
 	if tower_level >= 2:
 		var is_max: bool = tower_level >= MAX_TOWER_LEVEL
 		var badge_col: Color = Color(1.0, 0.85, 0.10) if is_max else Color(0.72, 0.92, 0.38)
 		var glow_col: Color  = Color(1.0, 0.70, 0.0, 0.35) if is_max else Color(0.50, 0.85, 0.20, 0.28)
 		# 배지 배경
-		draw_circle(Vector2(16, -16), 9.0, Color(0.06, 0.04, 0.02, 0.85))
-		draw_circle(Vector2(16, -16), 9.0, glow_col)
-		draw_arc(Vector2(16, -16), 9.0, 0, TAU, 20, badge_col, 1.5)
-		# 별 표시 (맥스: 2개, Lv2: 1개)
-		for s in tower_level - 1:
-			var sx: float = 16.0 + float(s - (tower_level - 2) / 2.0) * 7.0
-			_draw_star(Vector2(sx, -16), 3.5, badge_col)
-		# 맥스레벨 펄스 링
+		draw_circle(Vector2(16, -16), 10.0, Color(0.06, 0.04, 0.02, 0.88))
+		draw_circle(Vector2(16, -16), 10.0, glow_col)
+		draw_arc(Vector2(16, -16), 10.0, 0, TAU, 24, badge_col, 1.5)
+		# 레벨 숫자 대신 점으로 표시 (최대 4점 = Lv2~5)
+		var dots: int = tower_level - 1   # 1~4개
+		for d in dots:
+			var angle: float = TAU * float(d) / float(maxi(dots, 1)) - PI * 0.5
+			var dp := Vector2(16.0, -16.0) + Vector2(cos(angle), sin(angle)) * 5.5
+			draw_circle(dp, 2.2, badge_col)
+		# 맥스레벨(Lv5) 펄스 링 + 별
 		if is_max:
 			var pulse: float = 0.5 + 0.5 * sin(t * 3.0)
-			draw_arc(Vector2(16, -16), 11.0 + pulse * 2.0, 0, TAU, 16,
-				Color(1.0, 0.80, 0.10, 0.50 * pulse), 1.5)
+			draw_arc(Vector2(16, -16), 13.0 + pulse * 2.0, 0, TAU, 20,
+				Color(1.0, 0.80, 0.10, 0.55 * pulse), 1.8)
+			_draw_star(Vector2(16, -16), 5.5, Color(1.0, 0.92, 0.20))
 
 
 func _draw_star(center: Vector2, r: float, color: Color) -> void:
