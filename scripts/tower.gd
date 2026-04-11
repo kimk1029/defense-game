@@ -23,6 +23,11 @@ var builtin_weapon: String = ""
 var builtin_cd: float = 0.0
 const BUILTIN_LEVEL: int = 3
 
+# 업그레이드 카운터 — 3회 이상이면 맥스레벨 효과 활성화
+var upgrade_count: int = 0
+const MAX_UPGRADE: int = 3
+var _setup_done: bool = false
+
 func _ready() -> void:
 	z_index = 4
 	apply_global_mods(1.0, 1.0, 1.0, 1.0)
@@ -37,12 +42,16 @@ func setup_type(td: Dictionary) -> void:
 	base_projectile_speed = float(td["b_speed"])
 	if builtin_weapon != "":
 		builtin_cd = randf_range(0.3, _get_sp_cooldown(builtin_weapon))
+	_setup_done = true
 
 func apply_global_mods(d_mult: float, r_mult: float, rng_mult: float, p_mult: float) -> void:
 	damage           = int(round(base_damage * d_mult))
 	fire_rate        = base_fire_rate * r_mult
 	range_px         = base_range * rng_mult
 	projectile_speed = base_projectile_speed * p_mult
+	# 설치 후 업그레이드 횟수 누적
+	if _setup_done:
+		upgrade_count += 1
 	queue_redraw()
 
 func _get_sp_cooldown(key: String) -> float:
@@ -136,26 +145,28 @@ func _fire_special(key: String, target: Node2D) -> void:
 
 		"meteor":
 			var met := Meteor.new()
-			met.damage        = 8 + level * 7
-			met.radius        = 50.0 + float(level) * 12.0
-			met.is_max_level  = false
-			met.burn_damage   = 2 + level
+			var splash_dmg: int  = 8 + level * 7
+			var splash_rad: float = 55.0 + float(level) * 12.0
+			met.damage       = splash_dmg
+			met.radius       = splash_rad
 			proj_root.add_child(met)
-			var impact_pos: Vector2 = target.global_position
+			var impact_pos: Vector2  = target.global_position
+			var is_max: bool         = upgrade_count >= MAX_UPGRADE
+			var travel_t: float      = maxf(0.3, global_position.distance_to(impact_pos) / 210.0)
 			met.start(impact_pos)
-			# 착탄 후 지면 화염 생성
-			var fire_rad: float = 52.0 + float(level) * 10.0
-			var fire_dmg: int   = 2 + level
-			var travel_t: float = maxf(0.3, global_position.distance_to(impact_pos) / 210.0)
-			get_tree().create_timer(travel_t).timeout.connect(func():
-				var gf := GroundFire.new()
-				gf.position     = impact_pos
-				gf.radius       = fire_rad
-				gf.max_duration = 3.2
-				gf.duration     = 3.2
-				gf.burn_dmg     = fire_dmg
-				proj_root.add_child(gf)
-			)
+			# 착탄 타이밍에 맥스레벨이면 지면 화염 생성
+			if is_max:
+				var fire_rad: float = splash_rad * 1.1
+				var fire_dmg: int   = 3 + level * 2
+				get_tree().create_timer(travel_t).timeout.connect(func():
+					var gf := GroundFire.new()
+					gf.position     = impact_pos
+					gf.radius       = fire_rad
+					gf.max_duration = 5.0
+					gf.duration     = 5.0
+					gf.burn_dmg     = fire_dmg
+					proj_root.add_child(gf)
+				)
 
 		"arrow_rain":
 			var arrow_count := 2 + level
