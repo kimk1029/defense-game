@@ -1,136 +1,119 @@
-extends Node2D
 class_name Enemy
+extends Node2D
 
-signal died(enemy)
-signal reached_end(enemy)
+# 경로 이동 + 피격 + 상태이상.
+# 실제 이동은 PathFollow2D를 따라가며 global_position을 동기화.
 
-var hp: int = 10
-var max_hp: int = 10
-var speed: float = 60.0
+signal died(gold: int)
+signal reached_base(damage: int)
+
+var max_hp: float = 50.0
+var current_hp: float = 50.0
+var base_speed: float = 60.0
+var armor: float = 0.0
 var gold_reward: int = 3
-var xp_reward: int = 1
-var path_follow: PathFollow2D
-var dead: bool = false
-var monster_type: int = 0
-var anim_sprite: AnimatedSprite2D = null
+var damage_to_base: int = 1
 
-# Status effects
-var slow_timer: float = 0.0
-var slow_factor: float = 1.0
-var frozen_timer: float = 0.0
-var poison_timer: float = 0.0
-var poison_tick_timer: float = 0.0
-var poison_damage: int = 0
-var poison_explodes: bool = false
-var burn_timer: float = 0.0
-var burn_tick_timer: float = 0.0
-var burn_damage: int = 0
+var path_follow: PathFollow2D = null
+var status_holder: StatusHolder = null
+var dead: bool = false
 
 func _ready() -> void:
 	z_index = 5
-	add_to_group("enemies")
-	anim_sprite = AnimatedSprite2D.new()
-	anim_sprite.sprite_frames = load("res://assets/monster_frames.tres")
-	anim_sprite.play("walk")
-	anim_sprite.scale = Vector2(0.675, 0.675)
-	add_child(anim_sprite)
+	add_to_group(&"enemies")
+	status_holder = StatusHolder.new()
+	status_holder.name = "StatusHolder"
+	add_child(status_holder)
+
+func setup(hp: float, spd: float, arm: float, gold: int, dmg: int) -> void:
+	max_hp = hp
+	current_hp = hp
+	base_speed = spd
+	armor = arm
+	gold_reward = gold
+	damage_to_base = dmg
 
 func _process(delta: float) -> void:
 	if dead or path_follow == null:
 		return
 
-	if frozen_timer > 0.0:
-		frozen_timer -= delta
-		if anim_sprite:
-			anim_sprite.modulate = Color(0.6, 0.85, 1.0)
-			anim_sprite.pause()
+	# DoT/둔화 틱
+	status_holder.tick(delta)
+	if current_hp <= 0.0:
+		_die()
 		return
 
-	if slow_timer > 0.0:
-		slow_timer -= delta
-		if slow_timer <= 0.0:
-			slow_factor = 1.0
-
-	if poison_timer > 0.0:
-		poison_timer -= delta
-		poison_tick_timer -= delta
-		if poison_tick_timer <= 0.0:
-			poison_tick_timer = 0.5
-			take_damage(poison_damage)
-			if dead:
-				return
-
-	if burn_timer > 0.0:
-		burn_timer -= delta
-		burn_tick_timer -= delta
-		if burn_tick_timer <= 0.0:
-			burn_tick_timer = 0.5
-			take_damage(burn_damage)
-			if dead:
-				return
-
-	# 상태이상 색상
-	if anim_sprite:
-		if not anim_sprite.is_playing():
-			anim_sprite.play("walk")
-		if poison_timer > 0.0:
-			anim_sprite.modulate = Color(0.6, 1.0, 0.6)
-		elif burn_timer > 0.0:
-			anim_sprite.modulate = Color(1.0, 0.7, 0.5)
-		elif slow_timer > 0.0:
-			anim_sprite.modulate = Color(0.7, 0.7, 1.0)
-		else:
-			anim_sprite.modulate = Color.WHITE
-
-	var old_pos := global_position
-	path_follow.progress += speed * slow_factor * delta
+	var mult: float = status_holder.speed_multiplier()
+	path_follow.progress += base_speed * mult * delta
 	global_position = path_follow.global_position
 
-	# 좌우 flip만 — 스프라이트는 항상 수평 유지
-	if anim_sprite:
-		var move_dir := global_position - old_pos
-		if move_dir.length_squared() > 0.1:
-			anim_sprite.rotation = 0.0
-			anim_sprite.flip_h = move_dir.x < 0.0
-
 	if path_follow.progress_ratio >= 1.0:
-		dead = true
-		emit_signal("reached_end", self)
+		_reach_base()
+		return
 
-func take_damage(amount: int) -> void:
+	queue_redraw()
+
+func take_hit(payload: HitPayload) -> void:
 	if dead:
 		return
-	hp -= amount
-	if hp <= 0:
-		dead = true
-		emit_signal("died", self)
+	var dmg: float = payload.compute_damage_against(self)
+	current_hp -= dmg
+	for eff in payload.debuffs:
+		status_holder.apply((eff as StatusEffect).duplicate_effect())
+	if current_hp <= 0.0:
+		_die()
 
-func apply_slow(factor: float, duration: float) -> void:
-	slow_factor = min(slow_factor, factor)
-	slow_timer = max(slow_timer, duration)
+func apply_damage(dmg: float) -> void:
+	if dead:
+		return
+	current_hp -= dmg
 
-func apply_freeze(duration: float) -> void:
-	frozen_timer = max(frozen_timer, duration)
+func current_armor() -> float:
+	return maxf(0.0, armor + status_holder.armor_delta())
 
-func apply_poison(dmg: int, duration: float, explodes: bool) -> void:
-	poison_damage = max(poison_damage, dmg)
-	poison_timer = max(poison_timer, duration)
-	if poison_tick_timer <= 0.0:
-		poison_tick_timer = 0.5
-	if explodes:
-		poison_explodes = true
+func _die() -> void:
+	if dead:
+		return
+	dead = true
+	died.emit(gold_reward)
+	if path_follow != null and is_instance_valid(path_follow):
+		path_follow.queue_free()
+	queue_free()
 
-func apply_burn(dmg: int, duration: float) -> void:
-	burn_damage = max(burn_damage, dmg)
-	burn_timer = max(burn_timer, duration)
-	if burn_tick_timer <= 0.0:
-		burn_tick_timer = 0.5
+func _reach_base() -> void:
+	if dead:
+		return
+	dead = true
+	reached_base.emit(damage_to_base)
+	if path_follow != null and is_instance_valid(path_follow):
+		path_follow.queue_free()
+	queue_free()
 
+# ── 시각화 ────────────────────────────────────────────────────────────
 func _draw() -> void:
-	var bar_w: float = 30.0
-	var ratio: float = clamp(float(hp) / float(max_hp), 0.0, 1.0)
-	draw_rect(Rect2(Vector2(-bar_w / 2, -24), Vector2(bar_w, 4)), Color(0.2, 0.2, 0.2))
-	draw_rect(Rect2(Vector2(-bar_w / 2, -24), Vector2(bar_w * ratio, 4)), Color(0.2, 0.9, 0.3))
+	if dead:
+		return
 
-func _physics_process(_delta: float) -> void:
-	queue_redraw()
+	# 상태이상별 색상 변조
+	var body_col: Color = Color(0.82, 0.20, 0.18)
+	if status_holder.has_status(StatusEffect.Kind.FREEZE):
+		body_col = Color(0.55, 0.85, 1.0)
+	elif status_holder.has_status(StatusEffect.Kind.SLOW):
+		body_col = Color(0.50, 0.65, 1.0)
+	elif status_holder.has_status(StatusEffect.Kind.BURN):
+		body_col = Color(1.0, 0.55, 0.20)
+	elif status_holder.has_status(StatusEffect.Kind.POISON):
+		body_col = Color(0.45, 0.90, 0.35)
+
+	# 몸통
+	draw_circle(Vector2.ZERO, 13.0, body_col.darkened(0.30))
+	draw_circle(Vector2.ZERO, 10.0, body_col)
+	draw_circle(Vector2(-3, -3), 2.2, Color.WHITE)
+
+	# 체력바
+	var bw: float = 26.0
+	var ratio: float = clampf(current_hp / max_hp, 0.0, 1.0)
+	draw_rect(Rect2(Vector2(-bw * 0.5, -20.0), Vector2(bw, 3.0)),
+		Color(0.08, 0.08, 0.08, 0.85))
+	draw_rect(Rect2(Vector2(-bw * 0.5, -20.0), Vector2(bw * ratio, 3.0)),
+		Color(0.35, 1.0, 0.42))

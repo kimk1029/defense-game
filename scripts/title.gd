@@ -69,9 +69,10 @@ func _add_stage_select_button() -> void:
 	var mk := func(bg: Color, bd: Color) -> StyleBoxFlat:
 		var s := StyleBoxFlat.new()
 		s.bg_color = bg; s.border_color = bd
-		s.border_width_left = s.border_width_right = s.border_width_top = s.border_width_bottom = 2
-		s.corner_radius_top_left = s.corner_radius_top_right = 10
-		s.corner_radius_bottom_left = s.corner_radius_bottom_right = 10
+		s.border_width_left = 2; s.border_width_right = 2
+		s.border_width_top = 2; s.border_width_bottom = 2
+		s.corner_radius_top_left = 10; s.corner_radius_top_right = 10
+		s.corner_radius_bottom_left = 10; s.corner_radius_bottom_right = 10
 		return s
 	btn.add_theme_stylebox_override("normal",  mk.call(Color(0.10, 0.20, 0.22, 0.90), Color(0.35, 0.62, 0.72, 0.88)))
 	btn.add_theme_stylebox_override("hover",   mk.call(Color(0.16, 0.30, 0.36, 0.96), Color(0.50, 0.80, 0.92, 1.0)))
@@ -160,9 +161,10 @@ func _build_stage_select_panel() -> void:
 	var bk := StyleBoxFlat.new()
 	bk.bg_color = Color(0.15, 0.10, 0.06, 0.88)
 	bk.border_color = Color(0.52, 0.40, 0.20, 0.80)
-	bk.border_width_left = bk.border_width_right = bk.border_width_top = bk.border_width_bottom = 2
-	bk.corner_radius_top_left = bk.corner_radius_top_right = 10
-	bk.corner_radius_bottom_left = bk.corner_radius_bottom_right = 10
+	bk.border_width_left = 2; bk.border_width_right = 2
+	bk.border_width_top = 2; bk.border_width_bottom = 2
+	bk.corner_radius_top_left = 10; bk.corner_radius_top_right = 10
+	bk.corner_radius_bottom_left = 10; bk.corner_radius_bottom_right = 10
 	back_btn.add_theme_stylebox_override("normal", bk)
 	var bkh := bk.duplicate() as StyleBoxFlat
 	bkh.bg_color = Color(0.25, 0.18, 0.10, 0.92)
@@ -179,20 +181,20 @@ func _style_stage_card(btn: Button, idx: int, selected: bool) -> void:
 	if selected:
 		s.bg_color    = Color(0.22, 0.18, 0.06, 0.98)
 		s.border_color = Color(0.92, 0.72, 0.18, 1.0)
-		s.border_width_left = s.border_width_right = s.border_width_top = s.border_width_bottom = 3
+		s.border_width_left = 3; s.border_width_right = 3; s.border_width_top = 3; s.border_width_bottom = 3
 	else:
 		s.bg_color    = Color(0.14, 0.10, 0.06, 0.92)
 		s.border_color = Color(0.45, 0.35, 0.18, 0.70)
-		s.border_width_left = s.border_width_right = s.border_width_top = s.border_width_bottom = 1
-	s.corner_radius_top_left = s.corner_radius_top_right = 12
-	s.corner_radius_bottom_left = s.corner_radius_bottom_right = 12
-	s.content_margin_left = s.content_margin_right = 12
-	s.content_margin_top = s.content_margin_bottom = 10
+		s.border_width_left = 1; s.border_width_right = 1; s.border_width_top = 1; s.border_width_bottom = 1
+	s.corner_radius_top_left = 12; s.corner_radius_top_right = 12
+	s.corner_radius_bottom_left = 12; s.corner_radius_bottom_right = 12
+	s.content_margin_left = 12; s.content_margin_right = 12
+	s.content_margin_top = 10; s.content_margin_bottom = 10
 	btn.add_theme_stylebox_override("normal", s)
 	var sh := s.duplicate() as StyleBoxFlat
 	sh.bg_color = Color(0.26, 0.20, 0.08, 0.98)
 	sh.border_color = Color(0.78, 0.60, 0.24, 0.95)
-	sh.border_width_left = sh.border_width_right = sh.border_width_top = sh.border_width_bottom = 2
+	sh.border_width_left = 2; sh.border_width_right = 2; sh.border_width_top = 2; sh.border_width_bottom = 2
 	btn.add_theme_stylebox_override("hover", sh)
 	btn.add_theme_stylebox_override("pressed", s)
 

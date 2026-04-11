@@ -1,9 +1,11 @@
 class_name GameState
 
-# 선택된 스테이지 (1~4), 씬 전환 시에도 유지됨
+# 전역 게임 상태. class_name의 static 변수로 구현되어 씬 전환에도 값이 유지된다.
+# title.gd가 참조하는 스테이지 관련 static들은 그대로 보존.
+
+# ── 스테이지 선택 ─────────────────────────────────────────────────────
 static var selected_stage: int = 1
 
-# 스테이지 메타데이터
 static var STAGE_NAMES: Array[String]  = [
 	"초원의 길",
 	"지그재그 협로",
@@ -16,5 +18,23 @@ static var STAGE_DESCS: Array[String] = [
 	"넓은 소용돌이\n중앙 집중 공략",
 	"직각 격자 경로\n효율적 배치 요구",
 ]
-# 난이도 1~3
 static var STAGE_DIFF: Array[int] = [1, 2, 3, 2]
+
+# ── 인게임 상태 ───────────────────────────────────────────────────────
+static var gold: int = 150
+static var life: int = 20
+static var wave: int = 0
+
+static func reset_run() -> void:
+	gold = 150
+	life = 20
+	wave = 0
+
+static func spend_gold(amount: int) -> bool:
+	if gold < amount:
+		return false
+	gold -= amount
+	return true
+
+static func add_gold(amount: int) -> void:
+	gold += amount
