@@ -12,5 +12,5 @@
 | P6 | 배치 `place_at` 추출 | SPEC-04 | test_placement | ✅ |
 | P7 | 행동·릴레이 오라, **번개 연쇄가 죽은 적에 낭비되던 버그 수정** | SPEC-05 | test_behaviors | ✅ |
 | P8 | 흐름 스모크 (스테이지 4종) | SPEC-06 | test_smoke | ✅ |
-| P9 | 웹 빌드 + 한글 폰트 + 브라우저 E2E | SPEC-06 AC-06-4/5 | e2e_web.js | ⬜ |
+| P9 | 웹 빌드 + **한글·기호 폰트 번들(웹에서 전부 □로 깨지던 문제)** + 브라우저 E2E | SPEC-06 AC-06-4/5 | e2e_web.js | ✅ (밸런스 의존 1항목 제외) |
 | P10 | 밸런스 시뮬레이션 + 조정 | SPEC-07 | balance_sim | ⬜ |

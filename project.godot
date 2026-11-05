@@ -26,6 +26,11 @@ window/size/viewport_height=1280
 window/stretch/mode="canvas_items"
 window/handheld/orientation=1
 
+[gui]
+
+theme/custom_font="res://assets/fonts/ui_font.tres"
+
 [rendering]
 
 renderer/rendering_method="mobile"
+renderer/rendering_method.web="gl_compatibility"
