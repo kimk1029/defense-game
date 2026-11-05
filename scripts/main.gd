@@ -103,6 +103,46 @@ func _ready() -> void:
 	_build_tower_bar()
 	_build_tower_inspector()
 	_refresh_hud()
+	_setup_web_probe()
+
+# =====================================================================
+# Web E2E probe (SPEC-06 AC-06-4): debug web builds only.
+# Publishes state + clickable UI rects to window.rbState for tools/e2e_web.js.
+# =====================================================================
+func _setup_web_probe() -> void:
+	if not (OS.has_feature("web") and OS.is_debug_build()):
+		return
+	var t := Timer.new()
+	t.wait_time = 0.25
+	t.autostart = true
+	t.process_mode = Node.PROCESS_MODE_ALWAYS
+	t.timeout.connect(_publish_probe)
+	add_child(t)
+
+func _rect(c: Control) -> Array:
+	if c == null or not c.is_visible_in_tree():
+		return []
+	var r: Rect2 = c.get_global_rect()
+	return [r.position.x, r.position.y, r.size.x, r.size.y]
+
+func _publish_probe() -> void:
+	var towers: Array = []
+	for t in towers_root.get_children():
+		if t is Tower and not t.is_queued_for_deletion():
+			towers.append({"id": String(t.tower_id), "level": t.level,
+				"pos": [t.global_position.x, t.global_position.y]})
+	var bar: Array = []
+	for b in tower_bar_row.get_children():
+		bar.append(_rect(b))
+	var snap: Dictionary = {
+		"scene": "main", "stage": GameState.selected_stage, "wave": GameState.wave,
+		"gold": GameState.gold, "life": GameState.life, "towers": towers,
+		"placing": placement.is_placing(), "game_over": game_over_active,
+		"in_wave": spawner.in_progress, "between_timer": spawner.between_timer,
+		"inspector": tower_inspector.visible, "fps": Engine.get_frames_per_second(),
+		"ui": {"bar": bar, "upgrade": _rect(ins_upg_btn), "sell": _rect(ins_sell_btn)},
+	}
+	JavaScriptBridge.eval("window.rbState = %s;" % JSON.stringify(snap), true)
 
 # =====================================================================
 # Input
@@ -154,8 +194,11 @@ func _on_wave_started(wave: int) -> void:
 func _hide_wave_announce() -> void:
 	wave_announce.visible = false
 
-func _on_wave_cleared(_w: int) -> void:
-	pass
+func _on_wave_cleared(w: int) -> void:
+	var bonus: int = BalanceConfig.wave_clear_bonus(w)
+	if bonus > 0:
+		GameState.gold += bonus
+		gold_changed.emit(GameState.gold)
 
 func _on_enemy_killed(gold: int) -> void:
 	GameState.gold += gold

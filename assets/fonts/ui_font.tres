@@ -1,0 +1,9 @@
+[gd_resource type="FontVariation" load_steps=4 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/NanumGothic-Bold.ttf" id="1_nanum"]
+[ext_resource type="FontFile" path="res://assets/fonts/NotoSansSymbols2-Regular.ttf" id="2_sym2"]
+[ext_resource type="FontFile" path="res://assets/fonts/NotoSansMath-Regular.ttf" id="3_math"]
+
+[resource]
+base_font = ExtResource("1_nanum")
+fallbacks = Array[Font]([ExtResource("2_sym2"), ExtResource("3_math")])
