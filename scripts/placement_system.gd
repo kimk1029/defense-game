@@ -62,7 +62,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _try_place() -> void:
-	var pos: Vector2 = get_viewport().get_mouse_position()
+	place_at(get_viewport().get_mouse_position())
+
+## Places the current ghost tower at pos if valid (also used by tests/bots).
+func place_at(pos: Vector2) -> void:
 	if not _is_valid(pos):
 		return
 	var cost: int = int(current_data["cost"])

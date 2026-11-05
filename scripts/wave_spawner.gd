@@ -19,6 +19,8 @@ var between_timer: float = 3.0
 var spawn_timer: float = 0.0
 var spawn_queue: Array = []
 var alive_count: int = 0
+## Injectable RNG so wave composition is reproducible (SPEC-03 AC-03-3).
+var rng := RandomNumberGenerator.new()
 
 func setup(_path: Path2D, _enemies: Node2D, _frames: SpriteFrames) -> void:
 	path = _path
@@ -54,7 +56,7 @@ func _build_wave(w: int) -> Array:
 	var count: int = 6 + w * 2
 	for i in count:
 		var type_id: int = 0
-		var r: float = randf()
+		var r: float = rng.randf()
 		if w >= 3 and r < 0.25:
 			type_id = 2
 		elif w >= 2 and r < 0.55:
@@ -69,32 +71,12 @@ func _spawn_one() -> void:
 		spawn_timer = 0.5
 		return
 	var type_id: int = int(spawn_queue.pop_front())
-
-	var hp: float = 35.0
-	var spd: float = 75.0
-	var arm: float = 0.0
-	var gold: int = 4
-	var dmg: int = 1
-
-	match type_id:
-		0:
-			hp = 24.0 + float(current_wave) * 5.0
-			spd = 105.0
-			arm = 0.0
-			gold = 3
-			dmg = 1
-		1:
-			hp = 46.0 + float(current_wave) * 7.0
-			spd = 68.0
-			arm = 1.0
-			gold = 5
-			dmg = 1
-		2:
-			hp = 110.0 + float(current_wave) * 14.0
-			spd = 42.0
-			arm = 3.0 + float(current_wave) * 0.25
-			gold = 10
-			dmg = 2
+	var st: Dictionary = enemy_stats(type_id, current_wave)
+	var hp: float = st["hp"]
+	var spd: float = st["speed"]
+	var arm: float = st["armor"]
+	var gold: int = st["gold"]
+	var dmg: int = st["dmg"]
 
 	# Path follow
 	var pf := PathFollow2D.new()
@@ -123,6 +105,17 @@ func _spawn_one() -> void:
 	enemy.reached_base.connect(_on_reached_base)
 	alive_count += 1
 	spawn_timer = 0.75
+
+## Enemy stats for a type at wave w (SPEC-03 AC-03-4, GDD §6).
+static func enemy_stats(type_id: int, w: int) -> Dictionary:
+	var fw: float = float(w)
+	match type_id:
+		1:
+			return {"hp": 46.0 + fw * 7.0, "speed": 68.0, "armor": 1.0, "gold": 5, "dmg": 1}
+		2:
+			return {"hp": 110.0 + fw * 14.0, "speed": 42.0, "armor": 3.0 + fw * 0.25, "gold": 10, "dmg": 2}
+		_:
+			return {"hp": 24.0 + fw * 5.0, "speed": 105.0, "armor": 0.0, "gold": 3, "dmg": 1}
 
 func _on_enemy_died(gold: int) -> void:
 	alive_count = maxi(0, alive_count - 1)

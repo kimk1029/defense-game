@@ -54,7 +54,7 @@ func _find_next_chain_target(from_pos: Vector2, already_hit: Array) -> Enemy:
 	for e in tower.enemies_root.get_children():
 		if not (e is Enemy):
 			continue
-		if e in already_hit:
+		if e in already_hit or (e as Enemy).dead:  # SPEC-05 AC-05-3
 			continue
 		var d: float = e.global_position.distance_to(from_pos)
 		if d < best_dist:
