@@ -1,5 +1,6 @@
 extends SceneTree
-## Headless runner: godot --headless --path . -s tests/run_tests.gd
+## Headless runner: godot --headless --fixed-fps 60 --path . -s tests/run_tests.gd
+## (--fixed-fps makes frame delta exactly 1/60s so bot/balance tests are deterministic)
 ## Exit code = number of failed assertions.
 
 const FILES := [
@@ -9,20 +10,24 @@ const FILES := [
 	"res://tests/test_placement.gd",
 	"res://tests/test_behaviors.gd",
 	"res://tests/test_smoke.gd",
+	"res://tests/test_balance.gd",
 ]
 
 func _initialize() -> void:
 	_run.call_deferred()
 
-const WATCHDOG_SEC := 120.0
+const WATCHDOG_SEC := 300.0
 var _current_test := "(startup)"
 
 func _run() -> void:
 	# A runtime error inside an awaited test aborts that coroutine and the
 	# runner would wait forever; the watchdog turns that into a failure.
-	create_timer(WATCHDOG_SEC, true, false, true).timeout.connect(func():
-		print("TIMEOUT (likely runtime error) in ", _current_test)
-		quit(99))
+	# Real (wall-clock) time: with --fixed-fps, game-time timers run far faster than reality.
+	var started := Time.get_ticks_msec()
+	process_frame.connect(func():
+		if Time.get_ticks_msec() - started > WATCHDOG_SEC * 1000.0:
+			print("TIMEOUT (likely runtime error) in ", _current_test)
+			quit(99))
 	var total_fail := 0
 	var total_tests := 0
 	for f in FILES:

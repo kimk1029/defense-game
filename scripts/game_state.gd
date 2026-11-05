@@ -21,13 +21,13 @@ static var STAGE_DESCS: Array[String] = [
 static var STAGE_DIFF: Array[int] = [1, 2, 3, 2]
 
 # ── 인게임 상태 ───────────────────────────────────────────────────────
-static var gold: int = 150
-static var life: int = 20
+static var gold: int = BalanceConfig.START_GOLD
+static var life: int = BalanceConfig.START_LIFE
 static var wave: int = 0
 
 static func reset_run() -> void:
-	gold = 150
-	life = 20
+	gold = BalanceConfig.START_GOLD
+	life = BalanceConfig.START_LIFE
 	wave = 0
 
 static func spend_gold(amount: int) -> bool:

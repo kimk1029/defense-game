@@ -39,10 +39,10 @@ func test_ac03_3_deterministic() -> void:
 
 func test_ac03_4_enemy_stats() -> void:
 	var s0 := WaveSpawner.enemy_stats(0, 4)
-	near(s0["hp"], 44.0, "runner hp")
+	near(s0["hp"], 44.0 * BalanceConfig.hp_curve(4) * BalanceConfig.stage_hp_mult(1, 4), "runner hp = linear x hp_curve x stage")
 	near(s0["speed"], 105.0, "runner speed")
 	var s2 := WaveSpawner.enemy_stats(2, 8)
-	near(s2["hp"], 110.0 + 14.0 * 8, "tank hp")
+	near(s2["hp"], (110.0 + 14.0 * 8) * BalanceConfig.hp_curve(8) * BalanceConfig.stage_hp_mult(1, 8), "tank hp")
 	near(s2["armor"], 5.0, "tank armor 3+0.25w")
 	eq(s2["gold"], 10, "tank gold")
 	eq(s2["dmg"], 2, "tank base dmg")

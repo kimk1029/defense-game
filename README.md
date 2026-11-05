@@ -2,8 +2,33 @@
 
 2D 디펜스 게임. Android/iOS 출시 목표.
 
+## 문서 (SDD)
+| 문서 | 내용 |
+|---|---|
+| [docs/01_GDD.md](docs/01_GDD.md) | 게임 기획서 (포탑 10종, 스테이지 4종, 수치) |
+| [docs/03_ARCHITECTURE.md](docs/03_ARCHITECTURE.md) | 구조와 흐름 |
+| [docs/specs/](docs/specs/) | 기능별 스펙과 수용 기준(AC) — SPEC-07이 밸런스 |
+| [docs/04_TASKS.md](docs/04_TASKS.md) | 작업 ↔ 스펙 ↔ 테스트 추적표, 범위 밖 이슈 |
+
+## 테스트 · 시뮬레이션
+```
+godot --headless --import                                          # 새 class_name 추가 후 1회
+godot --headless --fixed-fps 60 --path . -s tests/run_tests.gd      # 종료 코드 = 실패 수
+godot --headless --fixed-fps 60 --path . -s tools/balance_sim.gd -- 1,2,3,4 40 1   # 밸런스 리포트
+```
+- `--fixed-fps 60`: 프레임 delta가 1/60초로 고정되어, 봇·밸런스 결과가 결정적이고 빠르게 나온다.
+- 밸런스 수치는 `scripts/balance_config.gd` 한 곳에 있다. 수치를 바꾸면 시뮬레이션을 다시 돌려 SPEC-07 목표를 확인한다.
+
+## 웹 빌드 + 브라우저 E2E
+```
+godot --headless --path . --export-debug "Web" <dir>/index.html   # 디버그 빌드만 window.rbState 노출
+python3 -m http.server 8766 -d <dir>
+npm i playwright && node tools/e2e_web.js http://127.0.0.1:8766/index.html <out_dir> [chromium 경로]
+```
+- 웹에는 시스템 폰트 대체가 없어서 `assets/fonts/ui_font.tres`(나눔고딕 + Noto 기호, OFL)를 기본 폰트로 쓴다.
+
 ## 열기
-1. [Godot 4.3+](https://godotengine.org/download) 다운로드 (단일 실행파일)
+1. [Godot 4.6+](https://godotengine.org/download) 다운로드 (단일 실행파일)
 2. Godot 실행 → Import → 이 폴더의 `project.godot` 선택
 3. F5 로 실행
 

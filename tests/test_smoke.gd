@@ -11,10 +11,11 @@ func _main(stage: int) -> GameMain:
 func test_ac06_1_game_state() -> void:
 	GameState.gold = 1; GameState.life = 1; GameState.wave = 9
 	GameState.reset_run()
-	eq([GameState.gold, GameState.life, GameState.wave], [150, 20, 0], "reset")
-	check(not GameState.spend_gold(151), "insufficient")
-	eq(GameState.gold, 150, "unchanged")
-	check(GameState.spend_gold(150), "exact spend")
+	var g0 := BalanceConfig.START_GOLD
+	eq([GameState.gold, GameState.life, GameState.wave], [g0, BalanceConfig.START_LIFE, 0], "reset")
+	check(not GameState.spend_gold(g0 + 1), "insufficient")
+	eq(GameState.gold, g0, "unchanged")
+	check(GameState.spend_gold(g0), "exact spend")
 	eq(GameState.gold, 0, "zero")
 
 func test_ac06_2_smoke_all_stages() -> void:

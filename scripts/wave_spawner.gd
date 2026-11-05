@@ -26,7 +26,7 @@ func setup(_path: Path2D, _enemies: Node2D, _frames: SpriteFrames) -> void:
 	path = _path
 	enemies_root = _enemies
 	enemy_sprite_frames = _frames
-	between_timer = 3.0
+	between_timer = BalanceConfig.FIRST_PREP_TIME
 
 func _process(delta: float) -> void:
 	if not in_progress:
@@ -42,7 +42,7 @@ func _process(delta: float) -> void:
 	elif alive_count <= 0:
 		in_progress = false
 		wave_cleared.emit(current_wave)
-		between_timer = 5.0
+		between_timer = BalanceConfig.BETWEEN_WAVES_TIME
 
 func _start_next_wave() -> void:
 	current_wave += 1
@@ -71,7 +71,7 @@ func _spawn_one() -> void:
 		spawn_timer = 0.5
 		return
 	var type_id: int = int(spawn_queue.pop_front())
-	var st: Dictionary = enemy_stats(type_id, current_wave)
+	var st: Dictionary = enemy_stats(type_id, current_wave, GameState.selected_stage)
 	var hp: float = st["hp"]
 	var spd: float = st["speed"]
 	var arm: float = st["armor"]
@@ -104,18 +104,22 @@ func _spawn_one() -> void:
 	enemy.died.connect(_on_enemy_died)
 	enemy.reached_base.connect(_on_reached_base)
 	alive_count += 1
-	spawn_timer = 0.75
+	spawn_timer = BalanceConfig.SPAWN_INTERVAL
 
 ## Enemy stats for a type at wave w (SPEC-03 AC-03-4, GDD §6).
-static func enemy_stats(type_id: int, w: int) -> Dictionary:
+## HP = linear base x BalanceConfig.hp_curve(w) x stage multiplier (SPEC-07).
+static func enemy_stats(type_id: int, w: int, stage: int = 1) -> Dictionary:
 	var fw: float = float(w)
+	var st: Dictionary
 	match type_id:
 		1:
-			return {"hp": 46.0 + fw * 7.0, "speed": 68.0, "armor": 1.0, "gold": 5, "dmg": 1}
+			st = {"hp": 46.0 + fw * 7.0, "speed": 68.0, "armor": 1.0, "gold": 5, "dmg": 1}
 		2:
-			return {"hp": 110.0 + fw * 14.0, "speed": 42.0, "armor": 3.0 + fw * 0.25, "gold": 10, "dmg": 2}
+			st = {"hp": 110.0 + fw * 14.0, "speed": 42.0, "armor": 3.0 + fw * 0.25, "gold": 10, "dmg": 2}
 		_:
-			return {"hp": 24.0 + fw * 5.0, "speed": 105.0, "armor": 0.0, "gold": 3, "dmg": 1}
+			st = {"hp": 24.0 + fw * 5.0, "speed": 105.0, "armor": 0.0, "gold": 3, "dmg": 1}
+	st["hp"] = float(st["hp"]) * BalanceConfig.hp_curve(w) * BalanceConfig.stage_hp_mult(stage, w)
+	return st
 
 func _on_enemy_died(gold: int) -> void:
 	alive_count = maxi(0, alive_count - 1)

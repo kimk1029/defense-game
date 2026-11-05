@@ -139,7 +139,7 @@ func _publish_probe() -> void:
 		"gold": GameState.gold, "life": GameState.life, "towers": towers,
 		"placing": placement.is_placing(), "game_over": game_over_active,
 		"in_wave": spawner.in_progress, "between_timer": spawner.between_timer,
-		"inspector": tower_inspector.visible,
+		"inspector": tower_inspector.visible, "fps": Engine.get_frames_per_second(),
 		"ui": {"bar": bar, "upgrade": _rect(ins_upg_btn), "sell": _rect(ins_sell_btn)},
 	}
 	JavaScriptBridge.eval("window.rbState = %s;" % JSON.stringify(snap), true)
@@ -194,8 +194,11 @@ func _on_wave_started(wave: int) -> void:
 func _hide_wave_announce() -> void:
 	wave_announce.visible = false
 
-func _on_wave_cleared(_w: int) -> void:
-	pass
+func _on_wave_cleared(w: int) -> void:
+	var bonus: int = BalanceConfig.wave_clear_bonus(w)
+	if bonus > 0:
+		GameState.gold += bonus
+		gold_changed.emit(GameState.gold)
 
 func _on_enemy_killed(gold: int) -> void:
 	GameState.gold += gold
